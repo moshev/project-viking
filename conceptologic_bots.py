@@ -7,6 +7,8 @@ import time
 import random
 from collections import defaultdict
 from multiprocessing import Process, Pipe, Queue
+import avi
+print dir(avi)
 RK = True
 
 class actor:
@@ -497,16 +499,12 @@ def display_process(pipe):
 
 if __name__ == '__main__':
     World = world().channel
-    #display(World)
+    display(World)
     spawner(World, (32,32))
     spawner(World, (432,32))
     spawner(World, (32,432))
     spawner(World, (432,432))
     spawner(World, (232,232))
-    comm = Pipe()
-    p = Process(target=display_process, args=(comm[0],))
-    p.start()
-    world_pipe_bridge(World, p, comm[1])
 
     stackless.run()
 
