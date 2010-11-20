@@ -8,7 +8,6 @@ import random
 from collections import defaultdict
 from multiprocessing import Process, Pipe, Queue
 import avi
-print dir(avi)
 RK = True
 
 class actor:
@@ -363,7 +362,7 @@ class minedropperRobot(actor):
                 #mineDistance = (self.width / 2.0 ) ** 2
                 #mineDistance += (self.height / 2.0) ** 2
                 #mineDistance = math.sqrt(mineDistance)
-                mineDistance = (self.width + self.height) / 4.0
+                mineDistance = (self.width + self.height) / 3.0
 
                 VectorX,VectorY = (math.sin(math.radians(self.angle + self.delta)),
                                    math.cos(math.radians(self.angle + self.delta)))
