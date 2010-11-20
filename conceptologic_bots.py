@@ -105,8 +105,9 @@ class world(actor):
                 x, y = (a + (da[0] + 2 * da[1] + 2 * da[2] + da[3]) / 6 for a, da in zip(actorInfo.location, actorInfo.vectors))
                 collision = self.testForCollision(x, y, actorInfo, actorPositions)
                 if collision:
-                    #don't move, also invalidate past movement
-                    actor.send((self.channel,"COLLISION",actor,collision))
+                    assert(collision is not actor)
+                    assert(actor is not self.channel)
+                    actor.send((self.channel, "COLLISION", actor, collision))
                     if collision and collision is not self.channel:
                         collision.send((self.channel,"COLLISION",actor,collision))
                 else:                        
@@ -159,13 +160,14 @@ class world(actor):
             self.registeredActors[sentFrom].angle = msgArgs[0]
             self.registeredActors[sentFrom].velocity = msgArgs[1]
         elif msg == "COLLISION":
-            pass # known, but we don't do anything
+            print "FFUUU"
         elif msg == "KILLME":
             self.registeredActors[sentFrom].hitpoints = 0
         elif msg == "QUIT":
             sys.exit(msgArgs[0])
         else:
-            print '!!!! WORLD GOT UNKNOWN MESSAGE ' , msg, msgArgs
+            print '!!!! WORLD GOT UNKNOWN MESSAGE', sentFrom, msg, msgArgs
+            raise NotImplemented()
             
 class display(actor):
     def __init__(self, world):
@@ -227,7 +229,6 @@ class basicRobot(actor):
         self.location = location
         self.angle = angle
         self.velocity = velocity
-        self.velocities = [0, 0, 0, velocity]
         self.hitpoints = hitpoints
         self.world = world
         self.world.send((self.channel,"JOIN",
@@ -235,7 +236,7 @@ class basicRobot(actor):
                                        location=self.location,
                                        angle=self.angle,
                                        velocity=self.velocity,
-                                       height=32,width=32,hitpoints=self.hitpoints)))
+                                       height=32, width=32, hitpoints=self.hitpoints)))
 
     def defaultMessageAction(self,args):
         sentFrom, msg, msgArgs = args[0],args[1],args[2:]
@@ -243,25 +244,24 @@ class basicRobot(actor):
             for actor in msgArgs[0].actors:
                 if actor[0] is self: break
             self.location = actor[1].location
-            #self.angle += 30.0 * (1.0 / msgArgs[0].updateRate)
+            self.angle += 1
             if self.angle >= 360:
                 self.angle -= 360
                 
-            updateMsg = (self.channel, "UPDATE_VECTOR",
-                         self.angle,self.velocity)
+            updateMsg = (self.channel, "UPDATE_VECTOR", self.angle, self.velocity)
             self.world.send(updateMsg)
         elif msg == "COLLISION":
-            self.angle += 73.0
+            self.angle += 73
             if self.angle >= 360:
                 self.angle -= 360
             self.hitpoints -= 1
             if self.hitpoints <= 0:
-                explosion(self.world, self.location,self.angle)
+                explosion(self.world, self.location, self.angle)
                 self.world.send((self.channel, "KILLME"))
         elif msg == "DAMAGE":
             self.hitpoints -= msgArgs[0]
             if self.hitpoints <= 0:
-                explosion(self.world, self.location,self.angle)
+                explosion(self.world, self.location, self.angle)
                 self.world.send((self.channel,"KILLME"))
                 
         else:
@@ -290,8 +290,9 @@ class explosion(actor):
                 self.world.send( (self.channel, "KILLME") )
 
 class mine(actor):
-    def __init__(self,world,location=(0,0)):
+    def __init__(self, world, location=(0,0), parent = None):
         actor.__init__(self)
+        self.parent = parent
         self.world = world
         self.world.send((self.channel,"JOIN",
                             properties(self.__class__.__name__,
@@ -309,8 +310,12 @@ class mine(actor):
                 other = msgArgs[1]
             else:
                 other = msgArgs[0]
-            other.send( (self.channel,"DAMAGE",25) )
-            self.world.send( (self.channel,"KILLME"))
+            # Do not damage the world.
+            # Colliding with the world means the mine is outside the field.
+            # Just die in that case
+            if other is not self.world:
+                other.send((self.channel,"DAMAGE",25) )
+            self.world.send((self.channel,"KILLME"))
         else:
             print "UNKNOWN MESSAGE", args
 
@@ -372,8 +377,8 @@ class minedropperRobot(actor):
                 y += self.height / 2.0
                 x -= VectorX
                 y += VectorY
-                mine(self.world, (x,y))
-                
+                mine(self.world, (x,y), self)
+
             updateMsg = (self.channel, "UPDATE_VECTOR",
                          self.angle + self.delta ,self.velocity)
             self.world.send(updateMsg)
