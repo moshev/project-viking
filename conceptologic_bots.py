@@ -454,13 +454,12 @@ class world_pipe_bridge(actor):
 
 def display_process(pipe):
     def getIcon(icons, iconName, angle):
-        angle = math.trunc(angle)
-        angle_key = math.trunc(angle / 17.5)
-        if icons.has_key((iconName, angle_key)):
-            return icons[(iconName, angle_key)]
+        angle = math.trunc(angle / 10.0) * 10
+        if icons.has_key((iconName, angle)):
+            return icons[(iconName, angle)]
         elif icons.has_key((iconName, 0)):
             icon = pygame.transform.rotate(icons[(iconName, 0)], angle).convert()
-            icons[(iconName, angle_key)] = icon
+            icons[(iconName, angle)] = icon
             return icon
         else:
             iconFile = os.path.join("data","%s.bmp" % iconName)
