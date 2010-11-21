@@ -4,6 +4,7 @@ from pygame.locals import *
 import math
 import Queue
 import os
+import time
 
 class icon_cache:
     def __init__(self, folder):
@@ -55,8 +56,11 @@ def run(queue_in, queue_out):
     window = pygame.display.set_mode((496,496))
     pygame.display.set_caption("Actor Demo")
     arena = world()
+    screen = pygame.display.get_surface()
+    sleep_time = 5/1000.0
 
     while True:
+        updated = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 queue_out.put(('QUIT', 0), block=False)
@@ -67,10 +71,14 @@ def run(queue_in, queue_out):
                 msg = queue_in.get(False)
                 if msg[0] == 'WORLD_STATE':
                     arena.set_state(msg[1])
+                    updated = True
+                    sleep_time = msg[1]['frame_time'] / 2.0
         except Queue.Empty:
             pass
 
-        screen = pygame.display.get_surface()
-        arena.draw(screen, 0)
-        pygame.display.flip()
+        if updated:
+            arena.draw(screen, 0)
+            pygame.display.flip()
+        else:
+            time.sleep(sleep_time)
 
