@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pygame
 import pygame.locals
 import os, sys
@@ -6,7 +7,8 @@ import math
 import time
 import random
 from collections import defaultdict
-from multiprocessing import Process, Pipe, Queue
+import multiprocessing
+import Queue
 import avi
 RK = True
 
@@ -21,7 +23,7 @@ class actor:
             self.processMessageMethod(self.channel.receive())
         
     def defaultMessageAction(self,args):
-        print args
+        print(args)
 
 class properties:
     def __init__(self,name,location=(-1,-1),angle=0,
@@ -140,10 +142,10 @@ class world(actor):
 #            percentUtilized =  (doneProcessingTime - startTime) / (1.0/self.updateRate)
 #            if percentUtilized >= 1:
 #                self.updateRate -= 1
-#                print "TOO SLOW, ACTORS:", len(self.registeredActors), "LOWERING FRAME RATE:", self.updateRate
+#                print("TOO SLOW, ACTORS:", len(self.registeredActors), "LOWERING FRAME RATE:", self.updateRate)
 #            elif percentUtilized <= 0.6 and self.updateRate < self.maxupdateRate:
 #                self.updateRate += 1
-#                print "TOO FAST, ACTORS:", len(self.registeredActors), "RAISING FRAME RATE: " , self.updateRate
+#                print("TOO FAST, ACTORS:", len(self.registeredActors), "RAISING FRAME RATE: " , self.updateRate)
 
             while time.clock() < calculatedEndTime:
                 stackless.schedule()
@@ -160,67 +162,14 @@ class world(actor):
             self.registeredActors[sentFrom].angle = msgArgs[0]
             self.registeredActors[sentFrom].velocity = msgArgs[1]
         elif msg == "COLLISION":
-            print "FFUUU"
+            print("FFUUU")
         elif msg == "KILLME":
             self.registeredActors[sentFrom].hitpoints = 0
         elif msg == "QUIT":
             sys.exit(msgArgs[0])
         else:
-            print '!!!! WORLD GOT UNKNOWN MESSAGE', sentFrom, msg, msgArgs
+            print('!!!! WORLD GOT UNKNOWN MESSAGE', sentFrom, msg, msgArgs)
             raise NotImplemented()
-            
-class display(actor):
-    def __init__(self, world):
-        actor.__init__(self)
-
-        self.world = World
-        self.icons = {}
-        pygame.init()
-
-        window = pygame.display.set_mode((496,496))
-        pygame.display.set_caption("Actor Demo")
-        
-        self.world.send((self.channel,"JOIN",
-                            properties(self.__class__.__name__,
-                                       public=False)))
-
-    def defaultMessageAction(self,args):
-        sentFrom, msg, msgArgs = args[0],args[1],args[2:]
-        if msg == "WORLD_STATE":
-            self.updateDisplay(msgArgs)
-        else:
-            print "DISPLAY UNKNOWN MESSAGE", args
-
-    def getIcon(self, iconName, angle):
-        angle = math.trunc(angle)
-        angle_key = math.trunc(angle / 17.5)
-        if self.icons.has_key((iconName, angle_key)):
-            return self.icons[(iconName, angle_key)]
-        elif self.icons.has_key((iconName, 0)):
-            icon = pygame.transform.rotate(self.icons[(iconName, 0)], angle).convert()
-            self.icons[(iconName, angle_key)] = icon
-            return icon
-        else:
-            iconFile = os.path.join("data","%s.bmp" % iconName)
-            surface = pygame.image.load(iconFile)
-            surface.set_colorkey((0xf3,0x0a,0x0a))
-            self.icons[(iconName, 0)] = surface.convert()
-            return self.getIcon(iconName, angle)
-
-    def updateDisplay(self,msgArgs):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.world.send((self.channel, "QUIT", 0))
-            
-        screen = pygame.display.get_surface()
-        screen.fill((200, 200, 200))
-
-        WorldState = msgArgs[0]
-
-        for channel,item in WorldState.actors:
-            itemImage = self.getIcon(item.name, 270.0 - item.angle)
-            screen.blit(itemImage, item.location)
-        pygame.display.flip()
 
 class basicRobot(actor):
     def __init__(self, world, location=(0,0),angle=135,velocity=1,
@@ -265,7 +214,7 @@ class basicRobot(actor):
                 self.world.send((self.channel,"KILLME"))
                 
         else:
-            print "BASIC ROBOT UNKNOWN MESSAGE", args
+            print("BASIC ROBOT UNKNOWN MESSAGE", args)
 
 class explosion(actor):
     def __init__(self,world,location=(0,0),angle=0):
@@ -317,7 +266,7 @@ class mine(actor):
                 other.send((self.channel,"DAMAGE",25) )
             self.world.send((self.channel,"KILLME"))
         else:
-            print "UNKNOWN MESSAGE", args
+            print("UNKNOWN MESSAGE", args)
 
 class minedropperRobot(actor):
     def __init__(self,world,location=(0,0),angle=135,velocity=1,
@@ -396,7 +345,7 @@ class minedropperRobot(actor):
                 explosion(self.world, self.location,self.angle)
                 self.world.send((self.channel, "KILLME"))
         else:
-            print "UNKNOWN MESSAGE", args
+            print("UNKNOWN MESSAGE", args)
 
 class spawner(actor):
     def __init__(self,world,location=(0,0)):
@@ -432,77 +381,51 @@ class spawner(actor):
                 newRobot = random.choice(self.robots)
                 newRobot(self.world,self.location,angle,velocity, hitpoints)
 
-class world_pipe_bridge(actor):
-    def __init__(self, world, process, pipe):
+class world_state_to_queue_bridge(actor):
+    '''
+    Puts WORLD_STATE messages received from world on the given queue.
+    block and timeout are given to the queue's put() method, see multiprocessing.Queue
+    '''
+    def __init__(self, world, queue, block=True, timeout=None):
         actor.__init__(self)
-        self.world = world
-        self.process = process
-        self.pipe = pipe
-        stackless.tasklet(self.poll_pipe)()
-        self.world.send((self.channel, "JOIN", properties(self.__class__.__name__, physical = False, public = False)))
+        self.world, self.queue, self.block, self.timeout = world, queue, block, timeout
+        self.world.send((self.channel, "JOIN", properties(self.__class__.__name__, physical = False, public=False)))
 
-    def poll_pipe(self):
-        while self.process.is_alive():
+    def defaultMessageAction(self, message):
+        sender, body = message[0], message[1:]
+        assert(sender is self.world)
+        if body[0] == 'WORLD_STATE':
+            state = {'time': body[1].time,
+                     'actors': [a[1] for a in body[1].actors]}
+            self.queue.put(('WORLD_STATE', state), self.block, self.timeout)
+
+class queue_to_world_bridge:
+    '''
+    Sends messages gotten from the given queue on the world channel.
+    block and timeout are given to the queue's get() method, see multiprocessing.Queue
+    '''
+    def __init__(self, world, queue, block=True, timeout=None):
+        self.world, self.queue, self.block, self.timeout = world, queue, block, timeout
+        self.channel = stackless.channel()
+        stackless.tasklet(self.wait_for_message)()
+
+    def wait_for_message(self):
+        while True:
             try:
-                if self.pipe.poll(0.01):
-                    obj = self.pipe.recv()
-                    self.world.send(tuple([self.channel] + list(obj)))
-            except IOError:
-                print 'omgwtf'
-            stackless.schedule()
-        self.process.join()
-        stackless.schedule_remove()
-
-    def defaultMessageAction(self, args):
-        if self.process.is_alive():
-            self.pipe.send(args[1:])
-
-def display_process(pipe):
-    def getIcon(icons, iconName, angle):
-        angle = math.trunc(angle / 10.0) * 10
-        if icons.has_key((iconName, angle)):
-            return icons[(iconName, angle)]
-        elif icons.has_key((iconName, 0)):
-            icon = pygame.transform.rotate(icons[(iconName, 0)], angle).convert()
-            icons[(iconName, angle)] = icon
-            return icon
-        else:
-            iconFile = os.path.join("data","%s.bmp" % iconName)
-            surface = pygame.image.load(iconFile)
-            surface.set_colorkey((0xf3,0x0a,0x0a))
-            icons[(iconName, 0)] = surface.convert()
-            return getIcon(icons, iconName, angle)
-
-    icons = {}
-    pygame.init()
-
-    window = pygame.display.set_mode((496,496))
-    pygame.display.set_caption("Actor Demo")
-    
-    while True:
-        try:
-            msg = pipe.recv()
-        except EOFError:
-            return 1
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pipe.send(("QUIT", 0))
-                return 0
-            
-        if msg[0] == 'WORLD_STATE':
-            world_state = msg[1]
-            screen = pygame.display.get_surface()
-            screen.fill((200, 200, 200))
-
-            for channel, item in world_state.actors:
-                itemImage = getIcon(icons, item.name, 270.0 - item.angle)
-                screen.blit(itemImage, item.location)
-            pygame.display.flip()
+                msg = self.queue.get(self.block, self.timeout)
+                self.world.send(tuple([self.channel] + list(msg)))
+            except (Queue.Empty, IOError):
+                stackless.schedule()
 
 if __name__ == '__main__':
+    queue_to_avi = multiprocessing.Queue(100)
+    queue_from_avi = multiprocessing.Queue(100)
+    avi_process = multiprocessing.Process(target=avi.run, args=(queue_to_avi, queue_from_avi))
     World = world().channel
-    display(World)
+    world_state_to_queue_bridge(World, queue_to_avi, block=True)
+    avi_process.start()
+    queue_to_world_bridge(World, queue_from_avi, block=False)
+    #display(World)
     spawner(World, (32,32))
     spawner(World, (432,32))
     spawner(World, (32,432))
@@ -510,4 +433,6 @@ if __name__ == '__main__':
     spawner(World, (232,232))
 
     stackless.run()
+    print("whee")
+    avi_process.join()
 
