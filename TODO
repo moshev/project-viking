@@ -1,6 +1,11 @@
 moshev:
 - Figure out the multiprocessing
+ - See if state updates can be made smaller somehow
+ - Ponder graphics updating
 - Collision detection
+ - Quadtrees?
 - Animations
+ - Skeletal animation of sprites?
+ - Vector graphics?
 - Connect with the provided convenience classes from pygame
 
