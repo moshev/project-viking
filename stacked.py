@@ -320,6 +320,8 @@ class mine(actor):
             if other is not self.world:
                 other.processMessage((self,"DAMAGE",25) )
             self.world.processMessage((self,"KILLME"))
+        elif msg == 'DAMAGE':
+            self.world.processMessage((self,"KILLME"))
         else:
             print("UNKNOWN MESSAGE", args)
 
