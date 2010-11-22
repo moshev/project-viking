@@ -16,6 +16,7 @@ RK = True
 MULTIPROCESS = False
 GRAPHICS = True
 ATOACOLLISION = True
+OPENGL = True
 
 class actor:
     def __init__(self):
@@ -182,7 +183,7 @@ class world(actor):
             print('!!!! WORLD GOT UNKNOWN MESSAGE', sentFrom, msg, msgArgs)
             raise NotImplemented()
 
-class display(actor):
+class display_sw(actor):
     def __init__(self, world):
         actor.__init__(self)
 
@@ -190,13 +191,65 @@ class display(actor):
         self.icons = {}
         pygame.init()
 
+        window = pygame.display.set_mode((496,496))
+        pygame.display.set_caption("Actor Demo")
+        
+        self.world.send((self.channel,"JOIN", properties(self.__class__.__name__, public=False)))
+
+    def defaultMessageAction(self,args):
+        sentFrom, msg, msgArgs = args[0],args[1],args[2:]
+        if msg == "WORLD_STATE":
+            self.updateDisplay(msgArgs)
+        else:
+            print("DISPLAY UNKNOWN MESSAGE", args)
+
+    def getIcon(self, iconName, angle):
+        angle = math.trunc(angle)
+        angle_key = math.trunc(angle / 17.5)
+        if self.icons.has_key((iconName, angle_key)):
+            return self.icons[(iconName, angle_key)]
+        elif self.icons.has_key((iconName, 0)):
+            icon = pygame.transform.rotate(self.icons[(iconName, 0)], angle).convert()
+            self.icons[(iconName, angle_key)] = icon
+            return icon
+        else:
+            iconFile = os.path.join("data","%s.bmp" % iconName)
+            surface = pygame.image.load(iconFile)
+            surface.set_colorkey((0xf3,0x0a,0x0a))
+            self.icons[(iconName, 0)] = surface.convert()
+            return self.getIcon(iconName, angle)
+
+    def updateDisplay(self,msgArgs):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.world.send((self.channel, "QUIT", 0))
+
+        WorldState = msgArgs[0]
+
+        if avi.DRAW:
+            screen = pygame.display.get_surface()
+            screen.fill((200, 200, 200))
+
+            for channel,item in WorldState.actors:
+                itemImage = self.getIcon(item.name, 270.0 - item.angle)
+                screen.blit(itemImage, item.location)
+            pygame.display.flip()
+
+class display_gl(actor):
+    def __init__(self, world):
+        actor.__init__(self)
+
+        self.world = World
+        self.icons = {}
+        pygame.init()
+        #pyglet.options['debug_gl'] = False
+
         window = pygame.display.set_mode((496,496), pygame.DOUBLEBUF | pygame.OPENGL)
         pygame.display.set_caption("Actor Demo")
         glClearColor(0.8, 0.8, 0.8, 1.0)
         glMatrixMode(GL_PROJECTION)
         gluOrtho2D(0, 496, 496, 0)
         glMatrixMode(GL_MODELVIEW)
-        glEnable(GL_TEXTURE_2D)
         self.loader = pyglet.resource.Loader(['data'])
         self.groups = {}
         self.batch = pyglet.graphics.Batch()
@@ -227,6 +280,7 @@ class display(actor):
         WorldState = msgArgs[0]
 
         if avi.DRAW:
+            pygame.display.flip()
             glClear(GL_COLOR_BUFFER_BIT)
             lists = []
             for channel,item in WorldState.actors:
@@ -239,11 +293,11 @@ class display(actor):
                         item.location[0],
                         item.location[1] + item.height)
                 tex = (0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
-                lists.append(self.batch.add(4, GL_QUADS, self.texture_group_for(item.name), ('v2f', quad), ('t2f', tex)))
+                col = tuple([1.0] * 12)
+                lists.append(self.batch.add(4, GL_QUADS, self.texture_group_for(item.name), ('v2f', quad), ('c3f', col)))
             self.batch.draw()
             for vlist in lists:
                 vlist.delete()
-            pygame.display.flip()
 
 class basicRobot(actor):
     def __init__(self, world, location=(0,0),angle=135,velocity=1,
@@ -509,7 +563,10 @@ if __name__ == '__main__':
             queue_to_world_bridge(World, queue_from_avi, block=False)
             avi_process.start()
         else:
-            display_actor = display(world)
+            if OPENGL:
+                display_actor = display_gl(world)
+            else:
+                display_actor = display_sw(world)
 
     stackless.run()
     if MULTIPROCESS:
