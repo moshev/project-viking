@@ -1,10 +1,12 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import pygame
 from pygame.locals import *
 import math
 import Queue
 import os
 import time
+import config
+DRAW = True
 
 class icon_cache:
     def __init__(self, folder):
@@ -53,7 +55,7 @@ def run(queue_in, queue_out):
     communicate over with the rest of the application.
     '''
     pygame.init()
-    window = pygame.display.set_mode((496,496))
+    window = pygame.display.set_mode(config.resolution)
     pygame.display.set_caption("Actor Demo")
     arena = world()
     screen = pygame.display.get_surface()
@@ -76,7 +78,7 @@ def run(queue_in, queue_out):
         except Queue.Empty:
             pass
 
-        if updated:
+        if updated and DRAW:
             arena.draw(screen, 0)
             pygame.display.flip()
         else:

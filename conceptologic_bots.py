@@ -11,7 +11,9 @@ import multiprocessing
 import Queue
 import avi
 RK = True
-MULTIPROCESS = True
+MULTIPROCESS = False
+GRAPHICS = True
+ATOACOLLISION = True
 
 class actor:
     def __init__(self):
@@ -60,6 +62,8 @@ class world(actor):
         elif y < 0 or y+ item.height > 496:
             return self.channel
         else:
+            if not ATOACOLLISION:
+                return None
             ax1, ax2, ay1, ay2 = x, x + item.width, y, y + item.height
             angle = item.angle
             velocity = item.velocity
@@ -136,23 +140,24 @@ class world(actor):
             self.killDeadActors()
             self.updateActorPositions()
             self.sendStateToActors(start_time)
-            print("Upkeep took", time.clock() - start_time)
 
-            calculatedEndTime = start_time + self.frame_time_ms / 1000.0
+            calculated_end_time = start_time + self.frame_time_ms / 1000.0
 
-            doneProcessingTime = time.clock()
-            overused = math.trunc((doneProcessingTime - start_time) * 1000.0) - self.frame_time_ms
-            if overused > self.min_frame_time_ms:
+            actual_end_time = time.clock()
+            overused = math.trunc((actual_end_time - calculated_end_time) * 1000.0)
+            if overused > (2 * self.frame_time_ms) / 3:
                 print("Overused:", overused, "ms")
+                print("Actors:", len(self.registeredActors))
                 self.frame_time_ms += 1
                 print("New frame time:", self.frame_time_ms, "ms")
-            elif overused < - self.min_frame_time_ms and self.frame_time_ms > self.min_frame_time_ms:
+            elif overused < -self.frame_time_ms / 2 and self.frame_time_ms > self.min_frame_time_ms:
                 print("Underused:", -overused, "ms")
+                print("Actors:", len(self.registeredActors))
                 if self.frame_time_ms > self.min_frame_time_ms:
                     self.frame_time_ms -= 1
                 print("New frame time:", self.frame_time_ms, "ms")
 
-            while time.clock() < calculatedEndTime:
+            while time.clock() < calculated_end_time:
                 stackless.schedule()
             
             stackless.schedule()
@@ -186,9 +191,7 @@ class display(actor):
         window = pygame.display.set_mode((496,496))
         pygame.display.set_caption("Actor Demo")
         
-        self.world.send((self.channel,"JOIN",
-                            properties(self.__class__.__name__,
-                                       public=False)))
+        self.world.send((self.channel,"JOIN", properties(self.__class__.__name__, public=False)))
 
     def defaultMessageAction(self,args):
         sentFrom, msg, msgArgs = args[0],args[1],args[2:]
@@ -217,16 +220,17 @@ class display(actor):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.world.send((self.channel, "QUIT", 0))
-            
-        screen = pygame.display.get_surface()
-        screen.fill((200, 200, 200))
 
         WorldState = msgArgs[0]
 
-        for channel,item in WorldState.actors:
-            itemImage = self.getIcon(item.name, 270.0 - item.angle)
-            screen.blit(itemImage, item.location)
-        pygame.display.flip()
+        if avi.DRAW:
+            screen = pygame.display.get_surface()
+            screen.fill((200, 200, 200))
+
+            for channel,item in WorldState.actors:
+                itemImage = self.getIcon(item.name, 270.0 - item.angle)
+                screen.blit(itemImage, item.location)
+            pygame.display.flip()
 
 class basicRobot(actor):
     def __init__(self, world, location=(0,0),angle=135,velocity=1,
@@ -251,7 +255,7 @@ class basicRobot(actor):
                 if actor[0] is self:
                     self.location = actor[1].location
                     break
-            self.angle += 1
+            self.angle += math.trunc(random.random() * 1.5)
             if self.angle >= 360:
                 self.angle -= 360
                 
@@ -326,7 +330,7 @@ class mine(actor):
         else:
             print("UNKNOWN MESSAGE", args)
 
-class minedropperLobot(actor):
+class minedropperRobot(actor):
     def __init__(self,world,location=(0,0),angle=135,velocity=1,
                  hitpoints=20):
         actor.__init__(self)
@@ -412,11 +416,7 @@ class spawner(actor):
         self.time = 0.0
         self.world = world
         
-        self.robots = []
-        for name,klass in globals().iteritems():
-            if name.endswith("Robot"):
-                self.robots.append(klass)
-
+        self.robots = [basicRobot, minedropperRobot]
         self.world.send((self.channel,"JOIN",
                             properties(self.__class__.__name__,
                                        location = location,
@@ -435,7 +435,7 @@ class spawner(actor):
                 self.time = WorldState.time + 1.0
                 angle = random.random() * 360.0
                 velocity = random.random() * 1.0 + 2.0
-                hitpoints = math.trunc(random.random() * 3 + 1)
+                hitpoints = math.trunc(random.random() * 15 + 15)
                 newRobot = random.choice(self.robots)
                 newRobot(self.world,self.location,angle,velocity, hitpoints)
 
@@ -487,17 +487,18 @@ if __name__ == '__main__':
     spawner(World, (432,432))
     spawner(World, (232,232))
 
-    if MULTIPROCESS:
-        queue_to_avi = multiprocessing.Queue(100)
-        queue_from_avi = multiprocessing.Queue(100)
-        avi_process = multiprocessing.Process(target=avi.run, args=(queue_to_avi, queue_from_avi))
-        world_state_to_queue_bridge(World, queue_to_avi, block=False)
-        queue_to_world_bridge(World, queue_from_avi, block=False)
-        avi_process.start()
-    else:
-        display(World)
+    if GRAPHICS:
+        if MULTIPROCESS:
+            queue_to_avi = multiprocessing.Queue(100)
+            queue_from_avi = multiprocessing.Queue(100)
+            avi_process = multiprocessing.Process(target=avi.run, args=(queue_to_avi, queue_from_avi))
+            world_state_to_queue_bridge(World, queue_to_avi, block=True)
+            queue_to_world_bridge(World, queue_from_avi, block=False)
+            avi_process.start()
+        else:
+            display_actor = display(world)
 
     stackless.run()
-    print("whee")
-    avi_process.join()
+    if MULTIPROCESS:
+        avi_process.join()
 
