@@ -12,11 +12,7 @@ from collections import defaultdict
 import multiprocessing
 import Queue
 import avi
-RK = True
-MULTIPROCESS = False
-GRAPHICS = True
-ATOACOLLISION = True
-OPENGL = True
+import config
 
 class actor:
     def __init__(self):
@@ -65,7 +61,7 @@ class world(actor):
         elif y < 0 or y+ item.height > 496:
             return self.channel
         else:
-            if not ATOACOLLISION:
+            if not config.ATOACOLLISION:
                 return None
             ax1, ax2, ay1, ay2 = x, x + item.width, y, y + item.height
             angle = item.angle
@@ -112,7 +108,11 @@ class world(actor):
                 # 1/6th of the last 4 vector values, multiplied by
                 # 1, 2, 2 and 1 respectively, or:
                 # a' = a + 1/6 (da1 + 2*da2 + 2*da3 + da4)
-                x, y = (a + (da[0] + 2 * da[1] + 2 * da[2] + da[3]) / 6 for a, da in zip(actorInfo.location, actorInfo.vectors))
+                if config.RK:
+                    x, y = (a + (da[0] + 2 * da[1] + 2 * da[2] + da[3]) / 6 for a, da in zip(actorInfo.location, actorInfo.vectors))
+                else:
+                    x = actorInfo.location[0] + actorInfo.vectors[0][3]
+                    y = actorInfo.location[1] + actorInfo.vectors[1][3]
                 collision = self.testForCollision(x, y, actorInfo, actorPositions)
                 if collision:
                     assert(collision is not actor)
@@ -129,7 +129,7 @@ class world(actor):
                                        actorInfo.location[1] + actorInfo.width))
 
     def sendStateToActors(self,starttime):
-        WorldState = worldState(self.frame_time_ms / 1000.0, starttime)
+        WorldState = worldState(self.min_frame_time_ms / 1000.0, starttime)
         for actor in self.registeredActors.keys():
             if self.registeredActors[actor].public:
                 WorldState.actors.append((actor, self.registeredActors[actor]))
@@ -139,15 +139,15 @@ class world(actor):
     def runFrame(self):
         initialStartTime = time.clock()
         while True:
-            start_time = time.clock()
+            start_time = pygame.time.get_ticks()
             self.killDeadActors()
             self.sendStateToActors(start_time)
             self.updateActorPositions()
 
-            calculated_end_time = start_time + self.frame_time_ms / 1000.0
+            calculated_end_time = start_time + self.frame_time_ms
 
-            actual_end_time = time.clock()
-            overused = math.trunc((actual_end_time - calculated_end_time) * 1000.0)
+            actual_end_time = pygame.time.get_ticks()
+            overused = math.trunc(actual_end_time - calculated_end_time)
             if overused > (2 * self.frame_time_ms) / 3:
                 print("Overused:", overused, "ms")
                 print("Actors:", len(self.registeredActors))
@@ -160,7 +160,7 @@ class world(actor):
                     self.frame_time_ms -= 1
                 print("New frame time:", self.frame_time_ms, "ms")
 
-            while time.clock() < calculated_end_time:
+            while pygame.time.get_ticks() < calculated_end_time:
                 stackless.schedule()
             
             stackless.schedule()
@@ -187,11 +187,11 @@ class display_sw(actor):
     def __init__(self, world):
         actor.__init__(self)
 
-        self.world = World
+        self.world = world
         self.icons = {}
         pygame.init()
 
-        window = pygame.display.set_mode((496,496))
+        window = pygame.display.set_mode(config.resolution)
         pygame.display.set_caption("Actor Demo")
         
         self.world.send((self.channel,"JOIN", properties(self.__class__.__name__, public=False)))
@@ -226,7 +226,7 @@ class display_sw(actor):
 
         WorldState = msgArgs[0]
 
-        if avi.DRAW:
+        if config.DRAW:
             screen = pygame.display.get_surface()
             screen.fill((200, 200, 200))
 
@@ -239,16 +239,16 @@ class display_gl(actor):
     def __init__(self, world):
         actor.__init__(self)
 
-        self.world = World
+        self.world = world
         self.icons = {}
         pygame.init()
-        #pyglet.options['debug_gl'] = False
+        pyglet.options['debug_gl'] = False
 
-        window = pygame.display.set_mode((496,496), pygame.DOUBLEBUF | pygame.OPENGL)
+        window = pygame.display.set_mode(config.resolution, pygame.DOUBLEBUF | pygame.OPENGL)
         pygame.display.set_caption("Actor Demo")
         glClearColor(0.8, 0.8, 0.8, 1.0)
         glMatrixMode(GL_PROJECTION)
-        gluOrtho2D(0, 496, 496, 0)
+        gluOrtho2D(0, config.resolution[0], config.resolution[1], 0)
         glMatrixMode(GL_MODELVIEW)
         self.loader = pyglet.resource.Loader(['data'])
         self.groups = {}
@@ -270,6 +270,7 @@ class display_gl(actor):
             image = self.loader.image('%s.bmp' % name)
             group = pyglet.graphics.TextureGroup(image)
             self.groups[name] = group
+            self.groups[name].texture = image
             return group
 
     def updateDisplay(self,msgArgs):
@@ -279,25 +280,34 @@ class display_gl(actor):
 
         WorldState = msgArgs[0]
 
-        if avi.DRAW:
+        if config.DRAW:
             pygame.display.flip()
+            start_draw = pygame.time.get_ticks()
             glClear(GL_COLOR_BUFFER_BIT)
             lists = []
             for channel,item in WorldState.actors:
-                quad = (item.location[0],
-                        item.location[1],
-                        item.location[0] + item.width,
-                        item.location[1],
-                        item.location[0] + item.width,
-                        item.location[1] + item.height,
-                        item.location[0],
-                        item.location[1] + item.height)
-                tex = (0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
-                col = tuple([1.0] * 12)
-                lists.append(self.batch.add(4, GL_QUADS, self.texture_group_for(item.name), ('v2f', quad), ('c3f', col)))
+#                quad = tuple([0.0] * 8)
+                ux = math.cos(math.radians(item.angle - 90))
+                uy = math.sin(math.radians(item.angle - 90))
+                vx = math.cos(math.radians(item.angle - 180))
+                vy = math.sin(math.radians(item.angle - 180))
+                w = item.width / 2
+                h = item.height / 2
+                cx = item.location[0] + w
+                cy = item.location[1] + h
+                wx, wy, hx, hy = ux * w, uy * w, vx * h, vy * h
+                quad = (cx - wx - hx, cy - wy - hy,
+                        cx + wx - hx, cy + wy - hy,
+                        cx + wx + hx, cy + wy + hy,
+                        cx - wx + hx, cy - wy + hy)
+                group = self.texture_group_for(item.name)
+                tex = tuple(group.texture.tex_coords[i] for i in
+                            (9, 10, 6, 7, 3, 4, 0, 1))
+                lists.append(self.batch.add(4, GL_QUADS, group, ('v2f', quad), ('t2f', tex)))
             self.batch.draw()
             for vlist in lists:
                 vlist.delete()
+            print("Draw took", pygame.time.get_ticks() - start_draw, 'ms')
 
 class basicRobot(actor):
     def __init__(self, world, location=(0,0),angle=135,velocity=1,
@@ -364,7 +374,7 @@ class explosion(actor):
             WorldState = msgArgs[0]
             if self.time == 0.0:
                 self.time = WorldState.time
-            elif WorldState.time >= self.time + 3.0:
+            elif WorldState.time >= self.time + 3000:
                 self.world.send( (self.channel, "KILLME") )
 
 class mine(actor):
@@ -404,8 +414,8 @@ class minedropperRobot(actor):
         self.location = location
         self.angle = angle
         self.delta = 0.0
-        self.height=32.0
-        self.width=32.0
+        self.height = 32.0
+        self.width = 32.0
         self.deltaDirection = "up"
         self.nextMine = 0.0
         self.velocity = velocity
@@ -438,7 +448,7 @@ class minedropperRobot(actor):
                     self.delta = -15.0
                     self.deltaDirection = "up"
             if self.nextMine <= msgArgs[0].time:
-                self.nextMine = msgArgs[0].time + 1.0
+                self.nextMine = msgArgs[0].time + 1000
                 mineX,mineY = (self.location[0] + (self.width / 2.0) ,
                                self.location[1] + (self.width / 2.0))
 
@@ -497,9 +507,9 @@ class spawner(actor):
         if msg == "WORLD_STATE":
             WorldState = msgArgs[0]
             if self.time == 0.0:
-                self.time = WorldState.time + 0.5 # wait 1/2 second on start
+                self.time = WorldState.time + 500 # wait 1/2 second on start
             elif WorldState.time >= self.time:
-                self.time = WorldState.time + 1.0
+                self.time = WorldState.time + 1000
                 angle = random.random() * 360.0
                 velocity = random.random() * 1.0 + 2.0
                 hitpoints = math.trunc(random.random() * 15 + 15)
@@ -546,7 +556,8 @@ class queue_to_world_bridge:
             except (Queue.Empty, IOError):
                 stackless.schedule()
 
-if __name__ == '__main__':
+def main():
+    random.seed(config.SEED)
     World = world().channel
     spawner(World, (32,32))
     spawner(World, (432,32))
@@ -554,8 +565,8 @@ if __name__ == '__main__':
     spawner(World, (432,432))
     spawner(World, (232,232))
 
-    if GRAPHICS:
-        if MULTIPROCESS:
+    if config.GRAPHICS:
+        if config.MULTIPROCESS:
             queue_to_avi = multiprocessing.Queue(100)
             queue_from_avi = multiprocessing.Queue(100)
             avi_process = multiprocessing.Process(target=avi.run, args=(queue_to_avi, queue_from_avi))
@@ -563,12 +574,15 @@ if __name__ == '__main__':
             queue_to_world_bridge(World, queue_from_avi, block=False)
             avi_process.start()
         else:
-            if OPENGL:
-                display_actor = display_gl(world)
+            if config.OPENGL:
+                display_actor = display_gl(World)
             else:
-                display_actor = display_sw(world)
+                display_actor = display_sw(World)
 
     stackless.run()
     if MULTIPROCESS:
         avi_process.join()
+
+if __name__ == '__main__':
+    main()
 

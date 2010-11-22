@@ -6,7 +6,6 @@ import Queue
 import os
 import time
 import config
-DRAW = True
 
 class icon_cache:
     def __init__(self, folder):
@@ -78,7 +77,7 @@ def run(queue_in, queue_out):
         except Queue.Empty:
             pass
 
-        if updated and DRAW:
+        if updated and config.DRAW:
             arena.draw(screen, 0)
             pygame.display.flip()
         else:
