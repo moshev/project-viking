@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pygame
 import pygame.locals
 import os, sys
@@ -6,8 +7,11 @@ import math
 import time
 import random
 from collections import defaultdict
-from multiprocessing import Process, Pipe, Queue
+import multiprocessing
+import Queue
+import avi
 RK = True
+MULTIPROCESS = True
 
 class actor:
     def __init__(self):
@@ -20,7 +24,7 @@ class actor:
             self.processMessageMethod(self.channel.receive())
         
     def defaultMessageAction(self,args):
-        print args
+        print(args)
 
 class properties:
     def __init__(self,name,location=(-1,-1),angle=0,
@@ -37,8 +41,8 @@ class properties:
         self.physical = physical
 
 class worldState:
-    def __init__(self,updateRate,time):
-        self.updateRate = updateRate
+    def __init__(self, frame_time, time):
+        self.frame_time = frame_time
         self.time = time
         self.actors = []
 
@@ -46,8 +50,8 @@ class world(actor):
     def __init__(self):
         actor.__init__(self)
         self.registeredActors = {}
-        self.updateRate = 60
-        self.maxupdateRate = 60
+        self.frame_time_ms = 10
+        self.min_frame_time_ms = 10
         stackless.tasklet(self.runFrame)()
 
     def testForCollision(self,x,y,item,otherItems=[]):
@@ -104,8 +108,9 @@ class world(actor):
                 x, y = (a + (da[0] + 2 * da[1] + 2 * da[2] + da[3]) / 6 for a, da in zip(actorInfo.location, actorInfo.vectors))
                 collision = self.testForCollision(x, y, actorInfo, actorPositions)
                 if collision:
-                    #don't move, also invalidate past movement
-                    actor.send((self.channel,"COLLISION",actor,collision))
+                    assert(collision is not actor)
+                    assert(actor is not self.channel)
+                    actor.send((self.channel, "COLLISION", actor, collision))
                     if collision and collision is not self.channel:
                         collision.send((self.channel,"COLLISION",actor,collision))
                 else:                        
@@ -117,35 +122,38 @@ class world(actor):
                                        actorInfo.location[1] + actorInfo.width))
 
     def sendStateToActors(self,starttime):
-        WorldState = worldState(self.updateRate,starttime)
+        WorldState = worldState(self.frame_time_ms / 1000.0, starttime)
         for actor in self.registeredActors.keys():
             if self.registeredActors[actor].public:
-                WorldState.actors.append( (actor, self.registeredActors[actor]) )
+                WorldState.actors.append((actor, self.registeredActors[actor]))
         for actor in self.registeredActors.keys():
-            actor.send( (self.channel,"WORLD_STATE",WorldState) )
+            actor.send((self.channel, "WORLD_STATE", WorldState))
 
     def runFrame(self):
         initialStartTime = time.clock()
-        startTime = time.clock()
-        while 1:
+        while True:
+            start_time = time.clock()
             self.killDeadActors()
             self.updateActorPositions()
-            self.sendStateToActors(startTime)
-            #wait
-            calculatedEndTime = startTime + 1.0/self.updateRate
+            self.sendStateToActors(start_time)
+            print("Upkeep took", time.clock() - start_time)
 
-#            doneProcessingTime = time.clock()
-#            percentUtilized =  (doneProcessingTime - startTime) / (1.0/self.updateRate)
-#            if percentUtilized >= 1:
-#                self.updateRate -= 1
-#                print "TOO SLOW, ACTORS:", len(self.registeredActors), "LOWERING FRAME RATE:", self.updateRate
-#            elif percentUtilized <= 0.6 and self.updateRate < self.maxupdateRate:
-#                self.updateRate += 1
-#                print "TOO FAST, ACTORS:", len(self.registeredActors), "RAISING FRAME RATE: " , self.updateRate
+            calculatedEndTime = start_time + self.frame_time_ms / 1000.0
+
+            doneProcessingTime = time.clock()
+            overused = math.trunc((doneProcessingTime - start_time) * 1000.0) - self.frame_time_ms
+            if overused > self.min_frame_time_ms:
+                print("Overused:", overused, "ms")
+                self.frame_time_ms += 1
+                print("New frame time:", self.frame_time_ms, "ms")
+            elif overused < - self.min_frame_time_ms and self.frame_time_ms > self.min_frame_time_ms:
+                print("Underused:", -overused, "ms")
+                if self.frame_time_ms > self.min_frame_time_ms:
+                    self.frame_time_ms -= 1
+                print("New frame time:", self.frame_time_ms, "ms")
 
             while time.clock() < calculatedEndTime:
                 stackless.schedule()
-            startTime = calculatedEndTime
             
             stackless.schedule()
 
@@ -158,14 +166,15 @@ class world(actor):
             self.registeredActors[sentFrom].angle = msgArgs[0]
             self.registeredActors[sentFrom].velocity = msgArgs[1]
         elif msg == "COLLISION":
-            pass # known, but we don't do anything
+            print("FFUUU")
         elif msg == "KILLME":
             self.registeredActors[sentFrom].hitpoints = 0
         elif msg == "QUIT":
             sys.exit(msgArgs[0])
         else:
-            print '!!!! WORLD GOT UNKNOWN MESSAGE ' , msg, msgArgs
-            
+            print('!!!! WORLD GOT UNKNOWN MESSAGE', sentFrom, msg, msgArgs)
+            raise NotImplemented()
+
 class display(actor):
     def __init__(self, world):
         actor.__init__(self)
@@ -186,7 +195,7 @@ class display(actor):
         if msg == "WORLD_STATE":
             self.updateDisplay(msgArgs)
         else:
-            print "DISPLAY UNKNOWN MESSAGE", args
+            print("DISPLAY UNKNOWN MESSAGE", args)
 
     def getIcon(self, iconName, angle):
         angle = math.trunc(angle)
@@ -226,7 +235,6 @@ class basicRobot(actor):
         self.location = location
         self.angle = angle
         self.velocity = velocity
-        self.velocities = [0, 0, 0, velocity]
         self.hitpoints = hitpoints
         self.world = world
         self.world.send((self.channel,"JOIN",
@@ -234,37 +242,37 @@ class basicRobot(actor):
                                        location=self.location,
                                        angle=self.angle,
                                        velocity=self.velocity,
-                                       height=32,width=32,hitpoints=self.hitpoints)))
+                                       height=32, width=32, hitpoints=self.hitpoints)))
 
     def defaultMessageAction(self,args):
         sentFrom, msg, msgArgs = args[0],args[1],args[2:]
         if msg == "WORLD_STATE":
             for actor in msgArgs[0].actors:
-                if actor[0] is self: break
-            self.location = actor[1].location
-            #self.angle += 30.0 * (1.0 / msgArgs[0].updateRate)
+                if actor[0] is self:
+                    self.location = actor[1].location
+                    break
+            self.angle += 1
             if self.angle >= 360:
                 self.angle -= 360
                 
-            updateMsg = (self.channel, "UPDATE_VECTOR",
-                         self.angle,self.velocity)
+            updateMsg = (self.channel, "UPDATE_VECTOR", self.angle, self.velocity)
             self.world.send(updateMsg)
         elif msg == "COLLISION":
-            self.angle += 73.0
-            if self.angle >= 360:
-                self.angle -= 360
             self.hitpoints -= 1
             if self.hitpoints <= 0:
-                explosion(self.world, self.location,self.angle)
+                explosion(self.world, self.location, self.angle)
                 self.world.send((self.channel, "KILLME"))
+            self.angle += 73
+            if self.angle >= 360:
+                self.angle -= 360
         elif msg == "DAMAGE":
             self.hitpoints -= msgArgs[0]
             if self.hitpoints <= 0:
-                explosion(self.world, self.location,self.angle)
+                explosion(self.world, self.location, self.angle)
                 self.world.send((self.channel,"KILLME"))
                 
         else:
-            print "BASIC ROBOT UNKNOWN MESSAGE", args
+            print("BASIC ROBOT UNKNOWN MESSAGE", args)
 
 class explosion(actor):
     def __init__(self,world,location=(0,0),angle=0):
@@ -289,8 +297,9 @@ class explosion(actor):
                 self.world.send( (self.channel, "KILLME") )
 
 class mine(actor):
-    def __init__(self,world,location=(0,0)):
+    def __init__(self, world, location=(0,0), parent = None):
         actor.__init__(self)
+        self.parent = parent
         self.world = world
         self.world.send((self.channel,"JOIN",
                             properties(self.__class__.__name__,
@@ -308,12 +317,16 @@ class mine(actor):
                 other = msgArgs[1]
             else:
                 other = msgArgs[0]
-            other.send( (self.channel,"DAMAGE",25) )
-            self.world.send( (self.channel,"KILLME"))
+            # Do not damage the world.
+            # Colliding with the world means the mine is outside the field.
+            # Just die in that case
+            if other is not self.world:
+                other.send((self.channel,"DAMAGE",25) )
+            self.world.send((self.channel,"KILLME"))
         else:
-            print "UNKNOWN MESSAGE", args
+            print("UNKNOWN MESSAGE", args)
 
-class minedropperRobot(actor):
+class minedropperLobot(actor):
     def __init__(self,world,location=(0,0),angle=135,velocity=1,
                  hitpoints=20):
         actor.__init__(self)
@@ -344,12 +357,12 @@ class minedropperRobot(actor):
                     break
             self.location = actor[1].location
             if self.deltaDirection == "up":
-                self.delta += 60.0 * (1.0 / msgArgs[0].updateRate)
+                self.delta += msgArgs[0].frame_time
                 if self.delta > 15.0:
                     self.delta = 15.0
                     self.deltaDirection = "down"
             else:
-                self.delta -= 60.0 * (1.0 / msgArgs[0].updateRate)
+                self.delta -= msgArgs[0].frame_time
                 if self.delta < -15.0:
                     self.delta = -15.0
                     self.deltaDirection = "up"
@@ -361,7 +374,7 @@ class minedropperRobot(actor):
                 #mineDistance = (self.width / 2.0 ) ** 2
                 #mineDistance += (self.height / 2.0) ** 2
                 #mineDistance = math.sqrt(mineDistance)
-                mineDistance = (self.width + self.height) / 4.0
+                mineDistance = (self.width + self.height) / 3.0
 
                 VectorX,VectorY = (math.sin(math.radians(self.angle + self.delta)),
                                    math.cos(math.radians(self.angle + self.delta)))
@@ -371,8 +384,8 @@ class minedropperRobot(actor):
                 y += self.height / 2.0
                 x -= VectorX
                 y += VectorY
-                mine(self.world, (x,y))
-                
+                mine(self.world, (x,y), self)
+
             updateMsg = (self.channel, "UPDATE_VECTOR",
                          self.angle + self.delta ,self.velocity)
             self.world.send(updateMsg)
@@ -390,7 +403,7 @@ class minedropperRobot(actor):
                 explosion(self.world, self.location,self.angle)
                 self.world.send((self.channel, "KILLME"))
         else:
-            print "UNKNOWN MESSAGE", args
+            print("UNKNOWN MESSAGE", args)
 
 class spawner(actor):
     def __init__(self,world,location=(0,0)):
@@ -422,91 +435,69 @@ class spawner(actor):
                 self.time = WorldState.time + 1.0
                 angle = random.random() * 360.0
                 velocity = random.random() * 1.0 + 2.0
-                hitpoints = math.trunc(random.random() * 30 + 20)
+                hitpoints = math.trunc(random.random() * 3 + 1)
                 newRobot = random.choice(self.robots)
                 newRobot(self.world,self.location,angle,velocity, hitpoints)
 
-class world_pipe_bridge(actor):
-    def __init__(self, world, process, pipe):
+class world_state_to_queue_bridge(actor):
+    '''
+    Puts WORLD_STATE messages received from world on the given queue.
+    block and timeout are given to the queue's put() method, see multiprocessing.Queue
+    '''
+    def __init__(self, world, queue, block=True, timeout=None):
         actor.__init__(self)
-        self.world = world
-        self.process = process
-        self.pipe = pipe
-        stackless.tasklet(self.poll_pipe)()
-        self.world.send((self.channel, "JOIN", properties(self.__class__.__name__, physical = False, public = False)))
+        self.world, self.queue, self.block, self.timeout = world, queue, block, timeout
+        self.world.send((self.channel, "JOIN", properties(self.__class__.__name__, physical = False, public=False)))
 
-    def poll_pipe(self):
-        while self.process.is_alive():
+    def defaultMessageAction(self, message):
+        sender, body = message[0], message[1:]
+        assert(sender is self.world)
+        if body[0] == 'WORLD_STATE':
+            state = {'time': body[1].time,
+                     'frame_time': body[1].frame_time,
+                     'actors': [a[1] for a in body[1].actors]}
             try:
-                if self.pipe.poll(0.01):
-                    obj = self.pipe.recv()
-                    self.world.send(tuple([self.channel] + list(obj)))
-            except IOError:
-                print 'omgwtf'
-            stackless.schedule()
-        self.process.join()
-        stackless.schedule_remove()
+                self.queue.put(('WORLD_STATE', state), self.block, self.timeout)
+            except Queue.Full:
+                stackless.schedule()
 
-    def defaultMessageAction(self, args):
-        if self.process.is_alive():
-            self.pipe.send(args[1:])
+class queue_to_world_bridge:
+    '''
+    Sends messages gotten from the given queue on the world channel.
+    block and timeout are given to the queue's get() method, see multiprocessing.Queue
+    '''
+    def __init__(self, world, queue, block=True, timeout=None):
+        self.world, self.queue, self.block, self.timeout = world, queue, block, timeout
+        self.channel = stackless.channel()
+        stackless.tasklet(self.wait_for_message)()
 
-def display_process(pipe):
-    def getIcon(icons, iconName, angle):
-        angle = math.trunc(angle)
-        angle_key = math.trunc(angle / 17.5)
-        if icons.has_key((iconName, angle_key)):
-            return icons[(iconName, angle_key)]
-        elif icons.has_key((iconName, 0)):
-            icon = pygame.transform.rotate(icons[(iconName, 0)], angle).convert()
-            icons[(iconName, angle_key)] = icon
-            return icon
-        else:
-            iconFile = os.path.join("data","%s.bmp" % iconName)
-            surface = pygame.image.load(iconFile)
-            surface.set_colorkey((0xf3,0x0a,0x0a))
-            icons[(iconName, 0)] = surface.convert()
-            return getIcon(icons, iconName, angle)
-
-    icons = {}
-    pygame.init()
-
-    window = pygame.display.set_mode((496,496))
-    pygame.display.set_caption("Actor Demo")
-    
-    while True:
-        try:
-            msg = pipe.recv()
-        except EOFError:
-            return 1
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pipe.send(("QUIT", 0))
-                return 0
-            
-        if msg[0] == 'WORLD_STATE':
-            world_state = msg[1]
-            screen = pygame.display.get_surface()
-            screen.fill((200, 200, 200))
-
-            for channel, item in world_state.actors:
-                itemImage = getIcon(icons, item.name, 270.0 - item.angle)
-                screen.blit(itemImage, item.location)
-            pygame.display.flip()
+    def wait_for_message(self):
+        while True:
+            try:
+                msg = self.queue.get(self.block, self.timeout)
+                self.world.send(tuple([self.channel] + list(msg)))
+            except (Queue.Empty, IOError):
+                stackless.schedule()
 
 if __name__ == '__main__':
     World = world().channel
-    #display(World)
     spawner(World, (32,32))
     spawner(World, (432,32))
     spawner(World, (32,432))
     spawner(World, (432,432))
     spawner(World, (232,232))
-    comm = Pipe()
-    p = Process(target=display_process, args=(comm[0],))
-    p.start()
-    world_pipe_bridge(World, p, comm[1])
+
+    if MULTIPROCESS:
+        queue_to_avi = multiprocessing.Queue(100)
+        queue_from_avi = multiprocessing.Queue(100)
+        avi_process = multiprocessing.Process(target=avi.run, args=(queue_to_avi, queue_from_avi))
+        world_state_to_queue_bridge(World, queue_to_avi, block=False)
+        queue_to_world_bridge(World, queue_from_avi, block=False)
+        avi_process.start()
+    else:
+        display(World)
 
     stackless.run()
+    print("whee")
+    avi_process.join()
 
