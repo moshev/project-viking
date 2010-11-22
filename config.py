@@ -1,8 +1,8 @@
-RK = True
+RK = False
 MULTIPROCESS = False
 GRAPHICS = True
 ATOACOLLISION = True
-OPENGL = True
+OPENGL = False
 DRAW = True
 SEED = 'Onamotopoeia'
 

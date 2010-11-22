@@ -39,6 +39,7 @@ class world:
         self.icons = icon_cache('data')
 
     def set_state(self, state):
+        print('actors:', len(state['actors']))
         self.state = state
 
     def draw(self, surface, timestamp):
@@ -73,7 +74,7 @@ def run(queue_in, queue_out):
                 if msg[0] == 'WORLD_STATE':
                     arena.set_state(msg[1])
                     updated = True
-                    sleep_time = msg[1]['frame_time'] / 2.0
+                    sleep_time = msg[1]['frame_time'] / 2000.0
         except Queue.Empty:
             pass
 
