@@ -1,6 +1,8 @@
 from __future__ import print_function
 import pygame
 import pygame.locals
+import pyglet
+from pyglet.gl import *
 import os, sys
 import stackless
 import math
@@ -138,8 +140,8 @@ class world(actor):
         while True:
             start_time = time.clock()
             self.killDeadActors()
-            self.updateActorPositions()
             self.sendStateToActors(start_time)
+            self.updateActorPositions()
 
             calculated_end_time = start_time + self.frame_time_ms / 1000.0
 
@@ -188,8 +190,16 @@ class display(actor):
         self.icons = {}
         pygame.init()
 
-        window = pygame.display.set_mode((496,496))
+        window = pygame.display.set_mode((496,496), pygame.DOUBLEBUF | pygame.OPENGL)
         pygame.display.set_caption("Actor Demo")
+        glClearColor(0.8, 0.8, 0.8, 1.0)
+        glMatrixMode(GL_PROJECTION)
+        gluOrtho2D(0, 496, 496, 0)
+        glMatrixMode(GL_MODELVIEW)
+        glEnable(GL_TEXTURE_2D)
+        self.loader = pyglet.resource.Loader(['data'])
+        self.groups = {}
+        self.batch = pyglet.graphics.Batch()
         
         self.world.send((self.channel,"JOIN", properties(self.__class__.__name__, public=False)))
 
@@ -200,21 +210,14 @@ class display(actor):
         else:
             print("DISPLAY UNKNOWN MESSAGE", args)
 
-    def getIcon(self, iconName, angle):
-        angle = math.trunc(angle)
-        angle_key = math.trunc(angle / 17.5)
-        if self.icons.has_key((iconName, angle_key)):
-            return self.icons[(iconName, angle_key)]
-        elif self.icons.has_key((iconName, 0)):
-            icon = pygame.transform.rotate(self.icons[(iconName, 0)], angle).convert()
-            self.icons[(iconName, angle_key)] = icon
-            return icon
+    def texture_group_for(self, name):
+        if name in self.groups:
+            return self.groups[name]
         else:
-            iconFile = os.path.join("data","%s.bmp" % iconName)
-            surface = pygame.image.load(iconFile)
-            surface.set_colorkey((0xf3,0x0a,0x0a))
-            self.icons[(iconName, 0)] = surface.convert()
-            return self.getIcon(iconName, angle)
+            image = self.loader.image('%s.bmp' % name)
+            group = pyglet.graphics.TextureGroup(image)
+            self.groups[name] = group
+            return group
 
     def updateDisplay(self,msgArgs):
         for event in pygame.event.get():
@@ -224,12 +227,22 @@ class display(actor):
         WorldState = msgArgs[0]
 
         if avi.DRAW:
-            screen = pygame.display.get_surface()
-            screen.fill((200, 200, 200))
-
+            glClear(GL_COLOR_BUFFER_BIT)
+            lists = []
             for channel,item in WorldState.actors:
-                itemImage = self.getIcon(item.name, 270.0 - item.angle)
-                screen.blit(itemImage, item.location)
+                quad = (item.location[0],
+                        item.location[1],
+                        item.location[0] + item.width,
+                        item.location[1],
+                        item.location[0] + item.width,
+                        item.location[1] + item.height,
+                        item.location[0],
+                        item.location[1] + item.height)
+                tex = (0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
+                lists.append(self.batch.add(4, GL_QUADS, self.texture_group_for(item.name), ('v2f', quad), ('t2f', tex)))
+            self.batch.draw()
+            for vlist in lists:
+                vlist.delete()
             pygame.display.flip()
 
 class basicRobot(actor):
