@@ -5,7 +5,41 @@ moshev:
 - Collision detection
  - Quadtrees?
 - Animations
- - Skeletal animation of sprites?
- - Vector graphics?
+ - Animations will be done with regular frames
+ - Transitions?
 - Connect with the provided convenience classes from pygame
+- State machines
+ - Applicable as AI and control modes for the player
+ - Play part in animation
+ - Design:
+  Every state object works like a function. It gets passed the current event and returns the next state object.
+  Returning None removes the state machine from the list of objects
+  Example:
+  class looped_animation:
+      def frame1(self, event):
+          if event is frame tick event:
+	      current_frame = frame_1
+	      return self.frame2
+	  else:
+	      return self.frame1
+      def frame2(self, event):
+          if event is frame tick event:
+	      current_frame = frame_2
+	      return self.frame1
+	  else:
+	      return self.frame2
+
+  Drawing works by iterating the list of game objects and looking for a 'graphics' attribute.
+  Each object could be thought of as a collection of properties and event loops bound together.
+  Each object's event loop can register for a set of events at the global event machine.
+  The global event machine contains subgroups of events. Example:
+  class looped_animation:
+      def __init__(self, object):
+          self.object = object
+
+      def start(self):
+          self.object.event_supplier.clock.register(self.frame1, {frame tick event})
+
+  Some of the above functionality would probably be exported to classes or metaclasses,
+  to handle the most common set-up code.
 
