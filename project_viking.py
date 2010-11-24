@@ -1,5 +1,6 @@
 from __future__ import print_function, absolute_import
 import time
+import numpy
 import pygame
 from pygame.locals import *
 
@@ -44,7 +45,7 @@ class accelerate_on_keypress:
         '''
         self.entity = entity
         self.entity.keyboard.add(self.on_key)
-        self.key, self.acceleration, self.frames = key, acceleration, frames
+        self.key, self.acceleration, self.frames = key, numpy.array(acceleration), frames
         self.active = False
         self.current_frame = 0
 
@@ -67,8 +68,7 @@ class accelerate_on_keypress:
         if not self.active:
             return None
         else:
-            self.entity.motion.a[0] += self.acceleration[0]
-            self.entity.motion.a[1] += self.acceleration[1]
+            self.entity.motion.a += self.acceleration
             self.current_frame += 1
             if self.current_frame == self.frames:
                 self.active = False
@@ -85,26 +85,23 @@ class graphics:
 def rk4(y, dy):
     '''
     Calculates the next value for y, given the past derivatives of y, dys.
-    y and dy must be sequences of the same length.
-    y's elements must be numbers and dy's elements must be sequences of 4 numbers.
-    Returns a list of numbers - the new values for y
+    y must be a numpy array of shape (x,)
+    dy must be a numpy array of shape (4, x).
     '''
-    return list(x + (dx[0] + 2 * dx[1] + 2 * dx[2] + dx[3]) / 6 for x, dx in zip(y, dy))
+    return y + (dy[0] + dy[1] * 2 + dy[2] * 2 + dy[3]) / 6
 
 class motion:
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
-        self.v, self.a = list(velocity), list(acceleration)
-        self.past_a = [[0] * 4, [0] * 4]
-        self.past_v = [[0] * 4, [0] * 4]
+        self.v, self.a = numpy.array(velocity), numpy.array(acceleration)
+        self.past_a = numpy.zeros((4, 2))
+        self.past_v = numpy.zeros((4, 2))
 
     def update_velocity(self):
-        for a, b in zip(self.past_a, self.a):
-            a[0:3] = a[1:4]
-            a[3] = b
+        self.past_a[:3] = self.past_a[1:]
+        self.past_a[3] = self.a
         self.v = rk4(self.v, self.past_a)
-        for v, u in zip(self.past_v, self.v):
-            v[0:3] = v[1:4]
-            v[3] = u
+        self.past_v[:3] = self.past_v[1:]
+        self.past_v[3] = self.v
 
 class entity:
     def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
@@ -112,7 +109,7 @@ class entity:
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
-        self.location = location
+        self.location = numpy.array(location)
         self.motion = motion
         self.graphics = graphics
 
@@ -128,9 +125,9 @@ def clamp(lo, hi):
 def main():
     clock = event_dispatcher('Clock')
     keyboard = event_dispatcher('Keyboard')
-    rect = entity('Red Rect', location=[100, 100], graphics=graphics((255, 0, 0), (20, 20)))
+    rect = entity('Red Rect', location=(100, 100), graphics=graphics((255, 0, 0), (20, 20)))
     player = entity('White Rect', clock, keyboard,
-                    location=[0, 0],
+                    location=(0, 0),
                     motion=motion([0, 0], [0, 0]),
                     graphics=graphics((128, 128, 128), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=10)
@@ -147,7 +144,7 @@ def main():
         for thing in things:
             if thing.motion:
                 thing.motion.update_velocity()
-                thing.location = map(clamp(0, 599), rk4(thing.location, thing.motion.past_v))
+                thing.location = numpy.clip(rk4(thing.location, thing.motion.past_v), 0, 599)
                 thing.motion.a = [0, 0]
 
         clock.dispatch(tick_event)
@@ -159,8 +156,8 @@ def main():
 
         screen.fill((0, 0, 0))
         for thing in things:
-            if thing.graphics and thing.location:
-                screen.fill(thing.graphics.color, pygame.Rect(thing.location, thing.graphics.size))
+            if thing.graphics is not None and thing.location is not None:
+                screen.fill(thing.graphics.color, pygame.Rect(tuple(thing.location), tuple(thing.graphics.size)))
         pygame.display.flip()
 
         delta = time.clock() - start
