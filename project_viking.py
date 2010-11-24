@@ -133,10 +133,10 @@ def main():
                     location=[0, 0],
                     motion=motion([0, 0], [0, 0]),
                     graphics=graphics((128, 128, 128), (10, 10)))
-    accelerate_on_keypress(player, K_UP, (0, -0.05), frames=10)
-    accelerate_on_keypress(player, K_DOWN, (0, 0.05), frames=10)
-    accelerate_on_keypress(player, K_LEFT, (-0.05, 0), frames=10)
-    accelerate_on_keypress(player, K_RIGHT, (0.05, 0), frames=10)
+    accelerate_on_keypress(player, K_UP, (0, -0.25), frames=10)
+    accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=10)
+    accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=10)
+    accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=10)
     things = [rect, player]
     frame_time = 0.02
     pygame.init()
