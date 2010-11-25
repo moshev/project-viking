@@ -85,7 +85,8 @@ class attractor:
 
     def on_tick(self, event):
         v = self.location - self.entity.location
-        self.entity.motion.a += (v * self.strength) / (numpy.dot(v, v) ** 1.5)
+        k = (v * self.strength) / (numpy.dot(v, v) ** 1.5)
+        self.entity.motion.a += k
         return self.on_tick
 
 class location_clamper:
@@ -121,7 +122,7 @@ class court_order:
     '''
     def __init__(self, entity, location, distance):
         self.entity = entity
-        self.location = numpy.array(location)
+        self.location = numpy.array(location, dtype=float)
         self.distance = distance
         self.entity.clock.add(self.on_tick)
 
@@ -143,8 +144,8 @@ class velocity_updater:
         self.entity.clock.add(self.on_tick)
 
     def on_tick(self, event):
-        self.entity.motion.update_velocity()
-        self.entity.motion.a = [0, 0]
+        self.entity.motion.v += self.entity.motion.a
+        self.entity.motion.a[:] = 0.0
         return self.on_tick
 
 class location_updater:
@@ -156,7 +157,7 @@ class location_updater:
         self.entity.clock.add(self.on_tick)
 
     def on_tick(self, event):
-        self.entity.location = self.entity.location + self.entity.motion.v
+        self.entity.location += self.entity.motion.v
         return self.on_tick
 
 def main():
@@ -174,17 +175,13 @@ def main():
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
-    attractor(rect, (300, 300), 5000)
-    attractor(player, (300, 300), 5000)
-    velocity_updater(rect)
-    velocity_updater(player)
-    court_order(rect, (300, 300), 50)
-    court_order(player, (300, 300), 50)
-    location_updater(rect)
-    location_updater(player)
-    location_clamper(rect, (0, 0), (600, 600))
-    location_clamper(player, (0, 0), (600, 600))
     things = [rect, player]
+    for thing in things:
+        attractor(thing, (300, 300), 5000)
+        velocity_updater(thing)
+        court_order(thing, (300, 300), 80)
+        location_updater(thing)
+        location_clamper(thing, (0, 0), (600, 600))
     frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((600, 600))

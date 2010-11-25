@@ -11,10 +11,7 @@ class graphics:
 
 class motion:
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
-        self.v, self.a = numpy.array(velocity), numpy.array(acceleration)
-
-    def update_velocity(self):
-        self.v = self.v + self.a
+        self.v, self.a = numpy.array(velocity, dtype=float), numpy.array(acceleration, dtype=float)
 
 class entity:
     def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
