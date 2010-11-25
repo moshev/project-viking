@@ -4,8 +4,32 @@ import numpy
 import pygame
 from pygame.locals import *
 import events
-import components
 from constants import *
+from util import arrayify
+
+class graphics:
+    def __init__(self, color, size):
+        '''
+        sprite is a pygame.surface or other blittable object.
+        anchor is a tuple, giving the location of the object's
+        upper-left corner inside the sprite.
+        '''
+        self.color, self.size = color, size
+
+class motion:
+    def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
+        self.v, self.a = map(arrayify, (velocity, acceleration))
+
+class entity:
+    def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
+        self.name = name or self.__class__.__name__
+        self.clock = clock
+        self.keyboard = keyboard
+        self.mouse = mouse
+        self.location = arrayify(location)
+        self.motion = motion
+        self.graphics = graphics
+        self.physics = None
 
 class accelerate_on_keypress:
     def __init__(self, entity, key, acceleration, frames=1):
@@ -127,13 +151,11 @@ class court_order:
         self.entity.clock.add(self.on_tick)
 
     def on_tick(self, event):
-        location = self.entity.location + self.entity.motion.v
-        r = location - self.location
+        r = self.entity.location - self.location
         d = numpy.sqrt(numpy.dot(r, r))
         if d < self.distance:
-            # Change the velocity vector, so the entity will rest on the circle
-            target = r * (self.distance / d) + self.location
-            self.entity.motion.v = target - self.entity.location
+            r /= d
+            self.entity.location[:] = self.location + r * self.distance
         return self.on_tick
 
 class velocity_updater:
@@ -146,7 +168,21 @@ class velocity_updater:
 
     def on_tick(self, event):
         self.entity.motion.v += self.entity.motion.a
+        return self.on_tick
+
+class motion_cleaner:
+    '''
+    Sets the entity's acceleration to 0 and velocity according to last frame->this difference.
+    '''
+    def __init__(self, entity):
+        self.entity = entity
+        self.last_location = numpy.array(self.entity.location)
+        self.entity.clock.add(self.on_tick)
+
+    def on_tick(self, event):
         self.entity.motion.a[:] = 0.0
+        self.entity.motion.v[:] = self.entity.location - self.last_location
+        self.last_location[:] = self.entity.location
         return self.on_tick
 
 class location_updater:
@@ -164,27 +200,28 @@ class location_updater:
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
-    rect = components.entity('Red Rect', clock,
-                             location=(300, 100),
-                             motion=components.motion(velocity=(3,-0.5)),
-                             graphics=components.graphics((255, 0, 0), (20, 20)))
-    player = components.entity('White Rect', clock, keyboard,
-                               location=(0, 0),
-                               motion=components.motion([0, 0], [0, 0]),
-                               graphics=components.graphics((128, 128, 128), (10, 10)))
+    rect = entity('Red Rect', clock,
+                  location=(300, 100),
+                  motion=motion(velocity=(3,-0.5)),
+                  graphics=graphics((255, 0, 0), (20, 20)))
+    player = entity('White Rect', clock, keyboard,
+                    location=(425, 300),
+                    motion=motion([0, 0], [0, 0]),
+                    graphics=graphics((128, 128, 128), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
     things = [rect, player]
     for thing in things:
-        attractor(thing, (300, 300), 5000)
-        attractor(thing, (600, 300), 5000)
+        attractor(thing, (300, 300), 2000)
+        attractor(thing, (550, 300), 2000)
         velocity_updater(thing)
-        court_order(thing, (300, 300), 60)
-        court_order(thing, (600, 300), 60)
         location_updater(thing)
+        court_order(thing, (300, 300), 30)
+        court_order(thing, (550, 300), 30)
         location_clamper(thing, (0, 0), (1000, 600))
+        motion_cleaner(thing)
     frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((1000, 600))
