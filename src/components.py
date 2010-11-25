@@ -19,7 +19,7 @@ class entity:
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
-        self.location = numpy.array(location)
+        self.location = numpy.array(location, dtype=float)
         self.motion = motion
         self.graphics = graphics
 
