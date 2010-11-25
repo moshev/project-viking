@@ -1,4 +1,9 @@
 from __future__ import print_function, absolute_import
+import numpy
+
+def arrayify(x):
+    '''Constructs a float array from x'''
+    return numpy.array(x, dtype=float)
 
 def __rk4(y, dy):
     '''
