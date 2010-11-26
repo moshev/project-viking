@@ -214,7 +214,7 @@ def main():
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
     a1l = (300, 300)
     a2l = (700, 300)
-    adist = 100
+    adist = 50
     astr = 5000
     attractor1_centre = entity('A1',
                                location=a1l,

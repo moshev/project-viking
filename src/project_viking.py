@@ -201,7 +201,7 @@ def main():
     move_while_key_pressed(player, K_RIGHT, (0.4, 0), 20)
     move_while_key_pressed(player, K_LEFT, (-0.4, 0), 20)
     # jumping
-    accelerate_while_key_pressed(player, K_UP, (0, -10), 5)
+    accelerate_while_key_pressed(player, K_UP, (0, -6.5), 10)
 
     while True:
         start = time.clock()
