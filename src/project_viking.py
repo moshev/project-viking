@@ -9,8 +9,8 @@ from constants import *
 from collections import defaultdict
 from util import arrayify
 FRAME = 0.02
-# g = 9800 cm/s**2;
-G = 9800.0 * (FRAME**2)
+# g = 980 cm/s**2;
+G = 4000.0 * (FRAME**2)
 
 class physics:
     '''
@@ -192,7 +192,7 @@ def main():
     tick_event = pygame.event.Event(TICK)
 
     player = components.entity('Player', clock, keyboard,
-                               location=components.location((0, 0), (100, 200)),
+                               location=components.location((0, 0), (50, 100)),
                                motion=components.motion(),
                                graphics=components.graphics(None))
     regular_physics(player)
@@ -201,7 +201,7 @@ def main():
     move_while_key_pressed(player, K_RIGHT, (0.4, 0), 20)
     move_while_key_pressed(player, K_LEFT, (-0.4, 0), 20)
     # jumping
-    accelerate_while_key_pressed(player, K_UP, (0, -6.5), 10)
+    accelerate_while_key_pressed(player, K_UP, (0, -2.5), 20)
 
     while True:
         start = time.clock()
