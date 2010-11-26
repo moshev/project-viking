@@ -75,7 +75,7 @@ def ground_limiter(ground_level):
     Returns a function, that moves an entity's location, making its lower edge stay above the given horizontal line.
     '''
     def limiter(entity):
-        if entity.location.point[1] + entity.location.size[1] > ground_level:
+        if entity.location.point[1] + entity.location.size[1] >= ground_level:
             entity.tags.add('grounded')
             entity.location.point[1] = ground_level - entity.location.size[1]
         elif entity.location.point[1] + entity.location.size[1] < ground_level:
@@ -108,31 +108,35 @@ class move_while_key_pressed:
         Adds self to the entity's physics, in the ACCELERATION_GROUP
         If frames is 0, the acceleration is applied until the key is released.
         '''
-        self.entity, self.key, self.a = entity, key, arrayify(vector)
-        self.entity.physics.add(self.on_physics, physics.GROUP_ACCELERATION)
+        self.entity, self.key = entity, key
+        self.entity.physics.add(self.on_physics, physics.GROUP_VELOCITY)
         self.entity.keyboard.add(self.on_key)
         self.frames = frames
         self.tick = 0
         self.state = self.state_none
+        assert frames != 0, 'omgwtf'
+        self.vectors = numpy.zeros((frames + 1, 2))
+        self.vectors += arrayify(vector)
+        self.vectors *= [[x, x] for x in range(0, frames + 1)]
 
     def state_none(self):
         return self.state_none
 
     def state_accelerate(self):
-        self.entity.motion.a += self.a
+        self.entity.motion.v[:] -= self.vectors[self.tick]
         self.tick += 1
         if self.tick >= self.frames and self.frames != 0:
-            return self.state_none
-        else:
-            return self.state_accelerate
+            self.tick = self.frames - 1
+        self.entity.motion.v[:] += self.vectors[self.tick]
+        return self.state_accelerate
 
     def state_decelerate(self):
-        if self.tick == 0:
-            return self.state_none
-        else:
-            self.entity.motion.a -= self.a
-            self.tick -= 1
-            return self.state_decelerate
+        self.entity.motion.v[:] -= self.vectors[self.tick]
+        self.tick -= 1
+        if self.tick <= 0:
+            self.tick = 0
+        self.entity.motion.v[:] += self.vectors[self.tick]
+        return self.state_decelerate
 
     def on_physics(self, entity):
         self.state = self.state()
@@ -202,10 +206,10 @@ def main():
     regular_physics(player)
     player.physics.add(ground_limiter(400), physics.GROUP_LOCATION)
     # movement left/right
-    move_while_key_pressed(player, K_RIGHT, (1.0, 0), 10)
-    move_while_key_pressed(player, K_LEFT, (-1.0, 0), 10)
+    move_while_key_pressed(player, K_RIGHT, (0.5, 0), 50)
+    move_while_key_pressed(player, K_LEFT, (-0.5, 0), 50)
     # jumping
-    jump_when_key_pressed(player, K_UP, (0, -2.65), 10)
+    jump_when_key_pressed(player, K_UP, (0, -2.65), 0)
 
     while True:
         start = time.clock()
