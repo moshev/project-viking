@@ -205,23 +205,34 @@ def main():
                   motion=motion(velocity=(3,-0.5)),
                   graphics=graphics((255, 0, 0), (20, 20)))
     player = entity('White Rect', clock, keyboard,
-                    location=(425, 300),
+                    location=(500, 300),
                     motion=motion([0, 0], [0, 0]),
-                    graphics=graphics((128, 128, 128), (10, 10)))
+                    graphics=graphics((227, 227, 227), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
+    a1l = (300, 300)
+    a2l = (700, 300)
+    adist = 100
+    astr = 5000
+    attractor1_centre = entity('A1',
+                               location=a1l,
+                               graphics=graphics((128, 227, 80), (5, 5)))
+    attractor2_centre = entity('A2',
+                               location=a2l,
+                               graphics=graphics((128, 80, 227), (5, 5)))
     things = [rect, player]
     for thing in things:
-        attractor(thing, (300, 300), 2000)
-        attractor(thing, (550, 300), 2000)
+        attractor(thing, a1l, astr)
+        attractor(thing, a2l, astr)
         velocity_updater(thing)
         location_updater(thing)
-        court_order(thing, (300, 300), 30)
-        court_order(thing, (550, 300), 30)
+        court_order(thing, a1l, adist)
+        court_order(thing, a2l, adist)
         location_clamper(thing, (0, 0), (1000, 600))
         motion_cleaner(thing)
+    things.extend([attractor1_centre, attractor2_centre])
     frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((1000, 600))
