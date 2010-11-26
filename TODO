@@ -1,7 +1,6 @@
 moshev:
 - Figure out the multiprocessing
- - See if state updates can be made smaller somehow
- - Ponder graphics updating
+ - No multiprocessing
 - Collision detection
  - Quadtrees?
 - Animations
