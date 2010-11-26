@@ -202,18 +202,18 @@ def main():
     keyboard = events.dispatcher('Keyboard')
     rect = entity('Red Rect', clock,
                   location=(300, 100),
-                  motion=motion(velocity=(3,-0.5)),
+                  motion=motion(velocity=(6,-0.5)),
                   graphics=graphics((255, 0, 0), (20, 20)))
     player = entity('White Rect', clock, keyboard,
-                    location=(500, 300),
+                    location=(500, 100),
                     motion=motion([0, 0], [0, 0]),
                     graphics=graphics((227, 227, 227), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
-    a1l = (300, 300)
-    a2l = (700, 300)
+    a1l = (430, 300)
+    a2l = (570, 300)
     adist = 50
     astr = 5000
     attractor1_centre = entity('A1',
