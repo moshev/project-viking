@@ -8,8 +8,9 @@ import components
 from constants import *
 from collections import defaultdict
 from util import arrayify
-# g = 0.00098 cm/ms**2; 2 ms per frame
-G = 0.00392
+FRAME = 0.02
+# g = 9800 cm/s**2;
+G = 9800.0 * (FRAME**2)
 
 class physics:
     '''
@@ -186,7 +187,6 @@ class accelerate_while_key_pressed:
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
-    frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((1000, 600))
     tick_event = pygame.event.Event(TICK)
@@ -198,10 +198,10 @@ def main():
     regular_physics(player)
     player.physics.add(ground_limiter(400), physics.GROUP_LOCATION)
     # movement left/right
-    move_while_key_pressed(player, K_RIGHT, (0.2, 0), 10)
-    move_while_key_pressed(player, K_LEFT, (-0.2, 0), 10)
+    move_while_key_pressed(player, K_RIGHT, (0.4, 0), 20)
+    move_while_key_pressed(player, K_LEFT, (-0.4, 0), 20)
     # jumping
-    accelerate_while_key_pressed(player, K_UP, (0, -0.2), 5)
+    accelerate_while_key_pressed(player, K_UP, (0, -10), 5)
 
     while True:
         start = time.clock()
@@ -219,8 +219,8 @@ def main():
         pygame.display.flip()
 
         delta = time.clock() - start
-        if delta < frame_time:
-            time.sleep(frame_time - delta)
+        if delta < FRAME:
+            time.sleep(FRAME - delta)
 
 if __name__ == '__main__':
     main()
