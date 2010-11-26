@@ -40,4 +40,5 @@ class entity:
         self.motion = motion
         self.graphics = graphics
         self.physics = None
+        self.tags = set()
 

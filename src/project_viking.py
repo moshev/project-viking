@@ -76,7 +76,11 @@ def ground_limiter(ground_level):
     '''
     def limiter(entity):
         if entity.location.point[1] + entity.location.size[1] > ground_level:
+            entity.tags.add('grounded')
             entity.location.point[1] = ground_level - entity.location.size[1]
+        elif entity.location.point[1] + entity.location.size[1] < ground_level:
+            if 'grounded' in entity.tags:
+                entity.tags.remove('grounded')
 
     return limiter
 
@@ -142,7 +146,7 @@ class move_while_key_pressed:
             self.state = self.state_decelerate
         return self.on_key
         
-class accelerate_while_key_pressed:
+class jump_when_key_pressed:
     '''
     Accelerates the entity along the given acceleration vector for some frames.
     '''
@@ -178,7 +182,7 @@ class accelerate_while_key_pressed:
     def on_key(self, event):
         if event.key != self.key:
             return self.on_key
-        if event.type == KEYDOWN:
+        if event.type == KEYDOWN and 'grounded' in self.entity.tags:
             self.state = self.state_accelerate
         elif event.type == KEYUP:
             self.state = self.state_none
@@ -198,10 +202,10 @@ def main():
     regular_physics(player)
     player.physics.add(ground_limiter(400), physics.GROUP_LOCATION)
     # movement left/right
-    move_while_key_pressed(player, K_RIGHT, (0.4, 0), 20)
-    move_while_key_pressed(player, K_LEFT, (-0.4, 0), 20)
+    move_while_key_pressed(player, K_RIGHT, (1.0, 0), 10)
+    move_while_key_pressed(player, K_LEFT, (-1.0, 0), 10)
     # jumping
-    accelerate_while_key_pressed(player, K_UP, (0, -2.5), 20)
+    jump_when_key_pressed(player, K_UP, (0, -2.65), 10)
 
     while True:
         start = time.clock()
