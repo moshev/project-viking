@@ -3,4 +3,5 @@ A 2D side-scrolling game about a viking and a dragon. Made for the gamedev class
 Requires:
 - python 2.7
 - pygame
+- numpy
 
