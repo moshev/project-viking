@@ -12,64 +12,6 @@ FRAME = 0.02
 # g = 980 cm/s**2;
 G = 4000.0 * (FRAME**2)
 
-class physics:
-    '''
-    A collection of ordered physics modifiers on an entity.
-    On the start of each tick, the entity's acceleration is zeroed.
-    A few standard constants are added for prioritising the modifiers.
-    Modifiers are applied starting with the ones with lowest number,
-    to the ones with highest number.
-    Add all things that modify acceleration first,
-    then a velocity-from-acceleration calculator,
-    then all things that work with velocity,
-    then a location-from-velocity calculator,
-    then everything which limits movement.
-    The modifiers are applied on each clock tick.
-    '''
-    GROUP_ACCELERATION = 10
-    GROUP_VELOCITY = 20
-    GROUP_LOCATION = 30
-    GROUP_LAST = 40
-     
-    def __init__(self, entity):
-        '''
-        entity - the entity to act upon
-        '''
-        self.modifiers = defaultdict(list)
-        self.entity = entity
-        self.entity.clock.add(self.on_tick)
-        assert(self.entity.physics is None)
-        self.entity.physics = self
-        self.last_position = numpy.array(self.entity.location.point)
-
-    def add(self, modifier, priority):
-        self.modifiers[priority].append(modifier)
-
-    def remove(self, modifier, priority=None):
-        '''
-        If priority is not given, remove the modifier from all groups.
-        If the modifier is not present in the given group, this is a no-op
-        '''
-        if priority is None:
-            for priority in self.modifiers.iterkeys():
-                self.remove(modifier, priority)
-        else:
-            try:
-                self.modifiers[priority].remove(modifier)
-            except ValueError:
-                pass
-
-    def on_tick(self, event):
-        if event.type != TICK: return self.on_tick
-        # Reset acceleration to 0 and velocity to the difference between the last two frames.
-        self.entity.motion.a[:] = 0
-        self.entity.motion.v[:] = self.entity.location.point - self.last_position
-        self.last_position[:] = self.entity.location.point
-        for priority in self.modifiers.iterkeys():
-            for modifier in self.modifiers[priority]:
-                modifier(self.entity)
-        return self.on_tick
-
 def ground_limiter(ground_level):
     '''
     Returns a function, that moves an entity's location, making its lower edge stay above the given horizontal line.
@@ -88,10 +30,10 @@ def regular_physics(entity):
     '''
     Returns a physics object with added velocity and location calculators and affected by gravity.
     '''
-    p = physics(entity)
-    p.add(components.velocity_calculator, physics.GROUP_ACCELERATION + 1)
-    p.add(components.location_calculator, physics.GROUP_VELOCITY + 1)
-    p.add(gravity, physics.GROUP_ACCELERATION)
+    p = components.physics(entity)
+    p.add(components.velocity_calculator, components.physics.GROUP_ACCELERATION + 1)
+    p.add(components.location_calculator, components.physics.GROUP_VELOCITY + 1)
+    p.add(gravity, components.physics.GROUP_ACCELERATION)
     return p
 
 def gravity(entity):
@@ -109,7 +51,7 @@ class move_while_key_pressed:
         If frames is 0, the acceleration is applied until the key is released.
         '''
         self.entity, self.key = entity, key
-        self.entity.physics.add(self.on_physics, physics.GROUP_VELOCITY)
+        self.entity.physics.add(self.on_physics, components.physics.GROUP_VELOCITY)
         self.entity.keyboard.add(self.on_key)
         self.frames = frames
         self.tick = 0
@@ -161,7 +103,7 @@ class jump_when_key_pressed:
         If frames is 0, the acceleration is applied until the key is released.
         '''
         self.entity, self.key, self.a = entity, key, arrayify(vector)
-        self.entity.physics.add(self.on_physics, physics.GROUP_ACCELERATION)
+        self.entity.physics.add(self.on_physics, components.physics.GROUP_ACCELERATION)
         self.entity.keyboard.add(self.on_key)
         self.frames = frames
         self.tick = 0
@@ -204,7 +146,7 @@ def main():
                                motion=components.motion(),
                                graphics=components.graphics(None))
     regular_physics(player)
-    player.physics.add(ground_limiter(400), physics.GROUP_LOCATION)
+    player.physics.add(ground_limiter(400), components.physics.GROUP_LOCATION)
     # movement left/right
     move_while_key_pressed(player, K_RIGHT, (0.5, 0), 50)
     move_while_key_pressed(player, K_LEFT, (-0.5, 0), 50)
