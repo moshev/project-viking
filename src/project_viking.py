@@ -7,7 +7,7 @@ import events
 import components
 from constants import *
 from collections import defaultdict
-from util import arrayify
+from util import arrayify, find_datadir
 FRAME = 0.02
 # g = 980 cm/s**2;
 G = 4000.0 * (FRAME**2)
@@ -209,7 +209,7 @@ def main():
     move_while_key_pressed(player, K_RIGHT, (0.5, 0), 50)
     move_while_key_pressed(player, K_LEFT, (-0.5, 0), 50)
     # jumping
-    jump_when_key_pressed(player, K_UP, (0, -2.65), 0)
+    jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
 
     while True:
         start = time.clock()
