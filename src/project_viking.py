@@ -177,7 +177,10 @@ def main():
                 screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
 
         for thing in dead:
-            entities.remove(thing)
+            thing.hitpoints = 100
+            thing.location[:] = (500, -10)
+            if thing.physics is not None:
+                thing.physics.last_position[:] = thing.location
 
         screen.fill((120, 50, 50), pygame.Rect(0, 0, player1.hitpoints * 2, 10))
         screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 0, player2.hitpoints * 2, 10))
