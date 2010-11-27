@@ -39,6 +39,9 @@ class looped_animation(object):
     def on_tick(self, event):
         if self.run:
             self.entity.set_frame(self.frames[self.frame])
+            self.frame += 1
+            if self.frame >= len(self.frames):
+                self.frame = 0
         return self.on_tick
 
 class loop_while_keydown(looped_animation):
