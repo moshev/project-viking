@@ -6,3 +6,6 @@ G = 4000.0 * (FRAME**2)
 # The minimum number available is 33 and the maximum is 255
 TICK = 33
 
+# Collision event ID
+COLLISION = 34
+

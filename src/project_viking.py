@@ -9,6 +9,7 @@ import events
 import components
 import controls
 import physics
+import itertools
 from constants import *
 from collections import defaultdict
 from util import *
@@ -108,6 +109,10 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     controls.jump_when_key_pressed(player, key_jump, (0, -3.0), 10)
     return player
 
+def collision_check(l1, s1, l2, s2):
+    r1, r2 = (l1 + s1), (l2 + s2)
+    return not ( l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l2[1])
+
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
@@ -119,7 +124,7 @@ def main():
     player1 = create_viking(datadir, clock, keyboard, K_LEFT, K_RIGHT, K_UP, K_RETURN)
     player2 = create_viking(datadir, clock, keyboard, K_a, K_d, K_w, K_j)
 
-    things = [player1, player2]
+    entities = [player1, player2]
 
     debug_draw = False
     while True:
@@ -135,8 +140,28 @@ def main():
             if event.type == KEYDOWN and event.key == K_F2:
                 debug_draw = not debug_draw
 
+        for thing1, thing2 in itertools.product(entities, entities):
+            if thing1 is thing2:
+                continue
+            if collision_check(thing1.hitbox_active.point + thing1.location, thing1.hitbox_active.size,
+                            thing2.hitbox_passive.point + thing2.location, thing2.hitbox_passive.size):
+                thing2.hitpoints -= 1
+
+        for thing1, thing2 in itertools.product(entities, entities):
+            if thing1 is thing2:
+                continue
+            p1 = thing1.hitbox_passive.point + thing1.location
+            p2 = thing2.hitbox_passive.point + thing2.location
+            if collision_check(p1, thing1.hitbox_passive.size, p2, thing2.hitbox_passive.size):
+                if thing1.location[0] < thing2.location[0]:
+                    diff = (p2[0] - p1[0] - thing1.hitbox_passive.size[0]) / 2
+                else:
+                    diff = -(p1[0] - p2[0] - thing2.hitbox_passive.size[0]) / 2
+                thing1.location[0] += diff
+                thing2.location[0] -= diff
+
         screen.fill((20, 20, 20))
-        for thing in things:
+        for thing in entities:
             screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
             if debug_draw:
                 screen.fill((227, 227, 227), pygame.Rect(thing.location + thing.hitbox_passive.point, thing.hitbox_passive.size))
@@ -144,6 +169,9 @@ def main():
                 screen.fill((100, 255, 255), pygame.Rect(thing.location[0] - 3, thing.location[1] - 3, 6, 6))
                 screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
         pygame.display.flip()
+
+        print("Player1 has %d hitpoints left!" % player1.hitpoints)
+        print("Player2 has %d hitpoints left!" % player2.hitpoints)
 
         delta = time.clock() - start
         if delta < FRAME:

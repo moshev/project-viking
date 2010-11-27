@@ -94,7 +94,7 @@ class entity(object):
     def __init__(self, name=None, clock=None, keyboard=None, mouse=None,
                  location=None, motion=None, physics=None,
                  hitbox_passive=None, hitbox_active=None,
-                 graphics=None):
+                 graphics=None, hitpoints=100):
         '''
         clock, keyboard and mouse are evetn dispatchers
         location is a tuple of x and y coordinates
@@ -113,6 +113,7 @@ class entity(object):
         self.hitbox_active = hitbox_active
         self.hitbox_passive = hitbox_passive
         self.tags = set()
+        self.hitpoints = hitpoints
 
     def set_frame(self, frame):
         self.graphics.sprite = frame['sprite']
