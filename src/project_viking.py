@@ -126,6 +126,7 @@ def main():
     player2.location[0] = 900
 
     entities = [player1, player2]
+    scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
 
     debug_draw = False
     while True:
@@ -177,6 +178,7 @@ def main():
                 screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
 
         for thing in dead:
+            scream.play()
             thing.hitpoints = 100
             thing.location[:] = (500, -10)
             if thing.physics is not None:
