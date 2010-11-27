@@ -93,7 +93,21 @@ class animation(object):
                 self.stop()
                 self.next.start()
         return self.on_tick
-    pass
+
+class animation_while_keydown(animation):
+    '''
+    Displays an animation once, stops when key is released.
+    '''
+    def __init__(self, entity, frames, key, next_animation, transitions=None):
+        animation.__init__(self, entity, frames, next_animation, transitions)
+        self.key = key
+        self.entity.keyboard.add(self.on_key)
+
+    def on_key(self, event):
+        if self.run and event.type == KEYUP and event.key == self.key:
+            self.stop()
+            self.next.start()
+        return self.on_key
 
 class move_while_key_pressed(object):
     '''

@@ -51,6 +51,12 @@ def create_viking(datadir, clock, keyboard):
     run_frames_right = list(iterate_with_delays(run_frames_right, run_delays))
     run_frames_left = list(iterate_with_delays(run_frames_left, run_delays))
 
+    jump_frames_right = load_frame_sequence(datadir, 'jump', 4)
+    jump_frames_left = map(flip_frame, jump_frames_right) 
+    jump_delays = [2, 10, 15, 20]
+    jump_frames_right = list(iterate_with_delays(jump_frames_right, jump_delays))
+    jump_frames_left = list(iterate_with_delays(jump_frames_left, jump_delays))
+
     player = components.entity('Player', clock, keyboard,
                                location=(0, 0),
                                motion=components.motion(),
@@ -70,22 +76,32 @@ def create_viking(datadir, clock, keyboard):
     walk_right_state = controls.loop_while_keydown(player, run_frames_right, (10, 0), K_RIGHT, idle_right_state)
     walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-10, 0), K_LEFT, idle_left_state)
 
+    jump_right_state = controls.animation_while_keydown(player, jump_frames_right, K_UP, idle_right_state)
+    jump_left_state = controls.animation_while_keydown(player, jump_frames_left, K_UP, idle_left_state)
+
+    jump_right_walk_state = controls.animation_while_keydown(player, jump_frames_right, K_UP, walk_right_state)
+    jump_left_walk_state = controls.animation_while_keydown(player, jump_frames_left, K_UP, walk_left_state)
+
     punch_right_state = controls.animation(player, punch_frames_right, idle_right_state)
     punch_left_state = controls.animation(player, punch_frames_left, idle_left_state)
 
     idle_right_state.transitions[K_LEFT] = walk_left_state
     idle_right_state.transitions[K_RIGHT] = walk_right_state
     idle_right_state.transitions[K_f] = punch_right_state
+    idle_right_state.transitions[K_UP] = jump_right_state
 
     idle_left_state.transitions[K_LEFT] = walk_left_state
     idle_left_state.transitions[K_RIGHT] = walk_right_state
     idle_left_state.transitions[K_f] = punch_left_state
+    idle_left_state.transitions[K_UP] = jump_left_state
 
     walk_right_state.transitions[K_LEFT] = walk_left_state
     walk_right_state.transitions[K_f] = punch_right_state
+    walk_right_state.transitions[K_UP] = jump_right_walk_state
 
     walk_left_state.transitions[K_RIGHT] = walk_right_state
     walk_left_state.transitions[K_f] = punch_left_state
+    walk_left_state.transitions[K_UP] = jump_left_walk_state
 
     idle_right_state.start()
     # jumping
