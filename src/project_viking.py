@@ -54,7 +54,7 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
 
     jump_frames_right = load_frame_sequence(datadir, 'jump', 4)
     jump_frames_left = map(flip_frame, jump_frames_right) 
-    jump_delays = [2, 10, 15, 20]
+    jump_delays = [3, 15, 18, 20]
     jump_frames_right = list(iterate_with_delays(jump_frames_right, jump_delays))
     jump_frames_left = list(iterate_with_delays(jump_frames_left, jump_delays))
 
@@ -134,8 +134,8 @@ def main():
     tick_event = pygame.event.Event(TICK)
     datadir = find_datadir()
 
-    player1 = create_viking(datadir, clock, keyboard, K_LEFT, K_RIGHT, K_UP, K_RETURN)
-    player2 = create_viking(datadir, clock, keyboard, K_a, K_d, K_w, K_j)
+    player1 = create_viking(datadir, clock, keyboard, K_a, K_d, K_w, K_j)
+    player2 = create_viking(datadir, clock, keyboard, K_LEFT, K_RIGHT, K_UP, K_RETURN)
     player2.location[0] = 900
 
     entities = [player1, player2]
