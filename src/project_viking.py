@@ -143,6 +143,8 @@ def main():
         for thing1, thing2 in itertools.product(entities, entities):
             if thing1 is thing2:
                 continue
+            if any(thing1.hitbox_active.size <= 0):
+                continue
             if collision_check(thing1.hitbox_active.point + thing1.location, thing1.hitbox_active.size,
                             thing2.hitbox_passive.point + thing2.location, thing2.hitbox_passive.size):
                 thing2.hitpoints -= 1
