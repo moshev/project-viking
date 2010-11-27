@@ -33,14 +33,7 @@ def wall(entity):
     elif entity.location[0] > 990:
         entity.location[0] = 990
 
-def main():
-    clock = events.dispatcher('Clock')
-    keyboard = events.dispatcher('Keyboard')
-    pygame.init()
-    screen = pygame.display.set_mode((1000, 600))
-    tick_event = pygame.event.Event(TICK)
-    datadir = find_datadir()
-
+def create_viking(datadir, clock, keyboard):
     idle_right = load_frame(datadir, 'model')
     idle_left = flip_frame(idle_right)
 
@@ -51,6 +44,12 @@ def main():
     punch_delays = [2, 8, 6, 8, 2]
     punch_frames_right = list(iterate_with_delays(punch_frames_right, punch_delays))
     punch_frames_left = list(iterate_with_delays(punch_frames_left, punch_delays))
+
+    run_frames_right = load_frame_sequence(datadir, 'run', 6)
+    run_frames_left = map(flip_frame, run_frames_right) 
+    run_delays = [5] * 6
+    run_frames_right = list(iterate_with_delays(run_frames_right, run_delays))
+    run_frames_left = list(iterate_with_delays(run_frames_left, run_delays))
 
     player = components.entity('Player', clock, keyboard,
                                location=(0, 0),
@@ -68,8 +67,8 @@ def main():
     idle_right_state = controls.looped_animation(player, [idle_right], (0, 0))
     idle_left_state = controls.looped_animation(player, [idle_left], (0, 0))
 
-    walk_right_state = controls.loop_while_keydown(player, [idle_right], (10, 0), K_RIGHT, idle_right_state)
-    walk_left_state = controls.loop_while_keydown(player, [idle_left], (-10, 0), K_LEFT, idle_left_state)
+    walk_right_state = controls.loop_while_keydown(player, run_frames_right, (10, 0), K_RIGHT, idle_right_state)
+    walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-10, 0), K_LEFT, idle_left_state)
 
     punch_right_state = controls.animation(player, punch_frames_right, idle_right_state)
     punch_left_state = controls.animation(player, punch_frames_left, idle_left_state)
@@ -91,6 +90,17 @@ def main():
     idle_right_state.start()
     # jumping
     controls.jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
+    return player
+
+def main():
+    clock = events.dispatcher('Clock')
+    keyboard = events.dispatcher('Keyboard')
+    pygame.init()
+    screen = pygame.display.set_mode((1000, 600))
+    tick_event = pygame.event.Event(TICK)
+    datadir = find_datadir()
+
+    player = create_viking(datadir, clock, keyboard)
 
     debug_draw = False
     while True:
