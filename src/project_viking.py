@@ -106,12 +106,25 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
 
     idle_right_state.start()
     # jumping
-    controls.jump_when_key_pressed(player, key_jump, (0, -3.0), 10)
+    controls.jump_when_key_pressed(player, key_jump, (0, -3.0), 12)
     return player
+
+def create_sheep(datadir, clock):
+    sheep_frame = load_frame(datadir, 'sheep')
+    sheep = components.entity('Sheep', clock, location=(500, 0),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=20)
+    sheep.set_frame(sheep_frame)
+    physics.regular_physics(sheep)
+    sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
+    sheep.physics.add(wall, components.physics.GROUP_LOCATION)
+    sheep.physics.add(physics.apply_friction(0.2), components.physics.GROUP_VELOCITY)
+    return sheep
 
 def collision_check(l1, s1, l2, s2):
     r1, r2 = (l1 + s1), (l2 + s2)
-    return not ( l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l2[1])
+    return not ( l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l1[1])
 
 def main():
     clock = events.dispatcher('Clock')
@@ -139,8 +152,11 @@ def main():
                 return 0
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
-            if event.type == KEYDOWN and event.key == K_F2:
-                debug_draw = not debug_draw
+            if event.type == KEYDOWN:
+                if event.key == K_F2:
+                    debug_draw = not debug_draw
+                elif event.key == K_F3:
+                    entities.append(create_sheep(datadir, clock))
 
         for thing1, thing2 in itertools.product(entities, entities):
             if thing1 is thing2:
@@ -179,10 +195,13 @@ def main():
 
         for thing in dead:
             scream.play()
-            thing.hitpoints = 100
-            thing.location[:] = (500, -10)
-            if thing.physics is not None:
-                thing.physics.last_position[:] = thing.location
+            if thing.name != 'Sheep':
+                thing.hitpoints = 100
+                thing.location[:] = (500, -10)
+                if thing.physics is not None:
+                    thing.physics.last_position[:] = thing.location
+            else:
+                entities.remove(thing)
 
         screen.fill((120, 50, 50), pygame.Rect(0, 0, player1.hitpoints * 2, 10))
         screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 0, player2.hitpoints * 2, 10))
