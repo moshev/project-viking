@@ -114,3 +114,9 @@ class entity(object):
         self.hitbox_passive = hitbox_passive
         self.tags = set()
 
+    def set_frame(self, frame):
+        self.graphics.sprite = frame['sprite']
+        self.graphics.anchor = frame['sp']
+        self.hitbox_passive = frame['hbp']
+        self.hitbox_active = frame['hba']
+
