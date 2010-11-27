@@ -123,6 +123,7 @@ def main():
 
     player1 = create_viking(datadir, clock, keyboard, K_LEFT, K_RIGHT, K_UP, K_RETURN)
     player2 = create_viking(datadir, clock, keyboard, K_a, K_d, K_w, K_j)
+    player2.location[0] = 900
 
     entities = [player1, player2]
 
@@ -162,14 +163,25 @@ def main():
                 thing1.location[0] += diff
                 thing2.location[0] -= diff
 
+        dead = []
         screen.fill((20, 20, 20))
         for thing in entities:
+            if thing.hitpoints <= 0:
+                dead.append(thing)
+                continue
             screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
             if debug_draw:
                 screen.fill((227, 227, 227), pygame.Rect(thing.location + thing.hitbox_passive.point, thing.hitbox_passive.size))
                 screen.fill((255, 100, 100), pygame.Rect(thing.location + thing.hitbox_active.point, thing.hitbox_active.size))
                 screen.fill((100, 255, 255), pygame.Rect(thing.location[0] - 3, thing.location[1] - 3, 6, 6))
                 screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
+
+        for thing in dead:
+            entities.remove(thing)
+
+        screen.fill((120, 50, 50), pygame.Rect(0, 0, player1.hitpoints * 2, 10))
+        screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 0, player2.hitpoints * 2, 10))
+
         pygame.display.flip()
 
         print("Player1 has %d hitpoints left!" % player1.hitpoints)
