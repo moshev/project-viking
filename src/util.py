@@ -4,6 +4,7 @@ import os
 import numpy
 import pygame.image
 import cPickle as pickle
+import components
 
 def arrayify(x):
     '''Constructs a float array from x'''
@@ -45,11 +46,13 @@ def load_frame_sequence(dir, basename, number, start=1):
     '''
     return [load_frame(dir, basename + str(n)) for n in range(start, number + start)]
 
-def __rk4(y, dy):
-    '''
-    Calculates the next value for y, given the past derivatives of y, dys.
-    y must be a numpy array of shape (x,)
-    dy must be a numpy array of shape (4, x).
-    '''
-    return y + (dy[0] + dy[1] * 2 + dy[2] * 2 + dy[3]) / 6
+def flip_frame(frame):
+    hbp, hba = frame['hbp'], frame['hba']
+    hbp = components.hitbox(hbp.point * (-1, 1) + hbp.size * (-1, 0), hbp.size)
+    hba = components.hitbox(hba.point * (-1, 1) + hba.size * (-1, 0), hba.size)
+    newframe={'sprite': pygame.transform.flip(frame['sprite'], True, False),
+              'sp': frame['sp'] * (-1, 1) + (-frame['sprite'].get_width(), 0),
+              'hbp': hbp,
+              'hba': hba}
+    return newframe
 

@@ -10,7 +10,7 @@ import components
 import controls
 from constants import *
 from collections import defaultdict
-from util import arrayify, find_datadir, load_frame_sequence, load_frame
+from util import *
 FRAME = 0.02
 # g = 980 cm/s**2;
 G = 4000.0 * (FRAME**2)
@@ -20,7 +20,7 @@ def ground_limiter(ground_level):
     Returns a function, that moves an entity's location, making its lower edge stay above the given horizontal line.
     '''
     def limiter(entity):
-        dist = ground_level - (entity.location[1] + entity.hitbox_passive.point[1] + entity.hitbox_passive.size[1])
+        dist = ground_level - (entity.location[1])# + entity.hitbox_passive.point[1] + entity.hitbox_passive.size[1])
         if dist <= 0:
             entity.tags.add('grounded')
             entity.location[1] += dist
@@ -68,14 +68,17 @@ class animation(object):
         self.entity = entity
         self.entity.clock.add(self.on_tick)
         self.frames = frames
+        self.run = True
 
     def on_tick(self, event):
+        if not self.run:
+            return None
         try:
             frame = next(self.frames)
             self.entity.graphics.sprite = frame['sprite']
             self.entity.graphics.anchor = frame['sp']
-            self.entity.graphics.hitbox_passive = frame['hbp']
-            self.entity.graphics.hitbox_active = frame['hba']
+            self.entity.hitbox_passive = frame['hbp']
+            self.entity.hitbox_active = frame['hba']
             return self.on_tick
         except StopIteration:
             return None
@@ -106,6 +109,7 @@ def main():
     tick_event = pygame.event.Event(TICK)
     datadir = find_datadir()
     idle_pose = load_frame(datadir, 'model')
+    idle_flipped = flip_frame(idle_pose)
     punch_frames = load_frame_sequence(datadir, 'punch', 3)
     punch_frames.append(idle_pose)
     punch_delays = [8, 6, 8, 2]
@@ -121,7 +125,9 @@ def main():
 
     # movement left/right
     controls.move_while_key_pressed(player, K_RIGHT, (1, 0), 20)
+    animate_on_key(player, K_RIGHT, lambda: iter([idle_pose]))
     controls.move_while_key_pressed(player, K_LEFT, (-1, 0), 20)
+    animate_on_key(player, K_LEFT, lambda: iter([idle_flipped]))
 
     # jumping
     controls.jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
@@ -145,6 +151,11 @@ def main():
 
         screen.fill((20, 20, 20))
         screen.blit(player.graphics.sprite, map(math.trunc, player.location + player.graphics.anchor))
+        if debug_draw:
+            screen.fill((227, 227, 227), pygame.Rect(player.location + player.hitbox_passive.point, player.hitbox_passive.size))
+            screen.fill((255, 100, 100), pygame.Rect(player.location + player.hitbox_active.point, player.hitbox_active.size))
+            screen.fill((100, 255, 255), pygame.Rect(player.location[0] - 3, player.location[1] - 3, 6, 6))
+            screen.fill((100, 100, 255), pygame.Rect(player.location, (1, 1)))
         pygame.display.flip()
 
         delta = time.clock() - start
