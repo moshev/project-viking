@@ -19,7 +19,6 @@ class looped_animation(object):
         self.entity.physics.add(self.on_physics, components.physics.GROUP_ACCELERATION)
         self.entity.keyboard.add(self.on_key)
         self.entity.clock.add(self.on_tick)
-        self.accelerate = False
 
     def start(self):
         self.run = True
@@ -28,12 +27,8 @@ class looped_animation(object):
         self.run = False
 
     def on_physics(self, entity):
-        if self.run and self.accelerate:
+        if self.run:
             self.entity.motion.a += self.a
-            self.accelerate = False
-        elif not self.run and not self.accelerate:
-            self.entity.motion.a -= self.a
-            self.accelerate = True
 
     def on_key(self, event):
         if self.run and event.type == KEYDOWN and event.key in self.transitions:
