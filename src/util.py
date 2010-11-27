@@ -27,7 +27,9 @@ def load_image_sequence(dir, basename, number, start=1):
     Loads dir/basenameS.png through dir/basenameN+S.png and returns them as a list.
     S and N are start and number, respectively.
     '''
-    return map(pygame.image.load, map(os.path.join(dir, basename + str(n) + '.png'), range(start, number + start)))
+    return [pygame.image.load(path)
+            for path in (os.path.join(dir, basename + str(n) + '.png')
+                         for n in range(start, number + start))]
 
 def __rk4(y, dy):
     '''
