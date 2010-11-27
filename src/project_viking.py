@@ -33,7 +33,7 @@ def wall(entity):
     elif entity.location[0] > 990:
         entity.location[0] = 990
 
-def create_viking(datadir, clock, keyboard):
+def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
     idle_right = load_frame(datadir, 'model')
     idle_left = flip_frame(idle_right)
 
@@ -73,39 +73,39 @@ def create_viking(datadir, clock, keyboard):
     idle_right_state = controls.looped_animation(player, [idle_right], (0, 0))
     idle_left_state = controls.looped_animation(player, [idle_left], (0, 0))
 
-    walk_right_state = controls.loop_while_keydown(player, run_frames_right, (10, 0), K_RIGHT, idle_right_state)
-    walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-10, 0), K_LEFT, idle_left_state)
+    walk_right_state = controls.loop_while_keydown(player, run_frames_right, (10, 0), key_right, idle_right_state)
+    walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-10, 0), key_left, idle_left_state)
 
-    jump_right_state = controls.animation_while_keydown(player, jump_frames_right, K_UP, idle_right_state)
-    jump_left_state = controls.animation_while_keydown(player, jump_frames_left, K_UP, idle_left_state)
+    jump_right_state = controls.animation_while_keydown(player, jump_frames_right, key_jump, idle_right_state)
+    jump_left_state = controls.animation_while_keydown(player, jump_frames_left, key_jump, idle_left_state)
 
-    jump_right_walk_state = controls.animation_while_keydown(player, jump_frames_right, K_UP, walk_right_state)
-    jump_left_walk_state = controls.animation_while_keydown(player, jump_frames_left, K_UP, walk_left_state)
+    jump_right_walk_state = controls.animation_while_keydown(player, jump_frames_right, key_jump, walk_right_state)
+    jump_left_walk_state = controls.animation_while_keydown(player, jump_frames_left, key_jump, walk_left_state)
 
     punch_right_state = controls.animation(player, punch_frames_right, idle_right_state)
     punch_left_state = controls.animation(player, punch_frames_left, idle_left_state)
 
-    idle_right_state.transitions[K_LEFT] = walk_left_state
-    idle_right_state.transitions[K_RIGHT] = walk_right_state
-    idle_right_state.transitions[K_f] = punch_right_state
-    idle_right_state.transitions[K_UP] = jump_right_state
+    idle_right_state.transitions[key_left] = walk_left_state
+    idle_right_state.transitions[key_right] = walk_right_state
+    idle_right_state.transitions[key_punch] = punch_right_state
+    idle_right_state.transitions[key_jump] = jump_right_state
 
-    idle_left_state.transitions[K_LEFT] = walk_left_state
-    idle_left_state.transitions[K_RIGHT] = walk_right_state
-    idle_left_state.transitions[K_f] = punch_left_state
-    idle_left_state.transitions[K_UP] = jump_left_state
+    idle_left_state.transitions[key_left] = walk_left_state
+    idle_left_state.transitions[key_right] = walk_right_state
+    idle_left_state.transitions[key_punch] = punch_left_state
+    idle_left_state.transitions[key_jump] = jump_left_state
 
-    walk_right_state.transitions[K_LEFT] = walk_left_state
-    walk_right_state.transitions[K_f] = punch_right_state
-    walk_right_state.transitions[K_UP] = jump_right_walk_state
+    walk_right_state.transitions[key_left] = walk_left_state
+    walk_right_state.transitions[key_punch] = punch_right_state
+    walk_right_state.transitions[key_jump] = jump_right_walk_state
 
-    walk_left_state.transitions[K_RIGHT] = walk_right_state
-    walk_left_state.transitions[K_f] = punch_left_state
-    walk_left_state.transitions[K_UP] = jump_left_walk_state
+    walk_left_state.transitions[key_right] = walk_right_state
+    walk_left_state.transitions[key_punch] = punch_left_state
+    walk_left_state.transitions[key_jump] = jump_left_walk_state
 
     idle_right_state.start()
     # jumping
-    controls.jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
+    controls.jump_when_key_pressed(player, key_jump, (0, -3.0), 10)
     return player
 
 def main():
@@ -116,7 +116,10 @@ def main():
     tick_event = pygame.event.Event(TICK)
     datadir = find_datadir()
 
-    player = create_viking(datadir, clock, keyboard)
+    player1 = create_viking(datadir, clock, keyboard, K_LEFT, K_RIGHT, K_UP, K_RETURN)
+    player2 = create_viking(datadir, clock, keyboard, K_a, K_d, K_w, K_j)
+
+    things = [player1, player2]
 
     debug_draw = False
     while True:
@@ -133,12 +136,13 @@ def main():
                 debug_draw = not debug_draw
 
         screen.fill((20, 20, 20))
-        screen.blit(player.graphics.sprite, map(math.trunc, player.location + player.graphics.anchor))
-        if debug_draw:
-            screen.fill((227, 227, 227), pygame.Rect(player.location + player.hitbox_passive.point, player.hitbox_passive.size))
-            screen.fill((255, 100, 100), pygame.Rect(player.location + player.hitbox_active.point, player.hitbox_active.size))
-            screen.fill((100, 255, 255), pygame.Rect(player.location[0] - 3, player.location[1] - 3, 6, 6))
-            screen.fill((100, 100, 255), pygame.Rect(player.location, (1, 1)))
+        for thing in things:
+            screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
+            if debug_draw:
+                screen.fill((227, 227, 227), pygame.Rect(thing.location + thing.hitbox_passive.point, thing.hitbox_passive.size))
+                screen.fill((255, 100, 100), pygame.Rect(thing.location + thing.hitbox_active.point, thing.hitbox_active.size))
+                screen.fill((100, 255, 255), pygame.Rect(thing.location[0] - 3, thing.location[1] - 3, 6, 6))
+                screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
         pygame.display.flip()
 
         delta = time.clock() - start
