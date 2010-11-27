@@ -4,6 +4,99 @@ import components
 from pygame.locals import *
 from util import arrayify
 
+class looped_animation(object):
+    '''
+    loops an animation and moves the character;
+    transitions to another animation on keypress.
+    '''
+    def __init__(self, entity, frames, acceleration, transitions=None):
+        self.entity = entity
+        self.frames = frames
+        self.frame = 0
+        self.transitions = transitions or dict()
+        self.run = False
+        self.a = arrayify(acceleration)
+        self.entity.physics.add(self.on_physics, components.physics.GROUP_ACCELERATION)
+        self.entity.keyboard.add(self.on_key)
+        self.entity.clock.add(self.on_tick)
+        self.accelerate = False
+
+    def start(self):
+        self.run = True
+
+    def stop(self):
+        self.run = False
+
+    def on_physics(self, entity):
+        if self.run and self.accelerate:
+            self.entity.motion.a += self.a
+            self.accelerate = False
+        elif not self.run and not self.accelerate:
+            self.entity.motion.a -= self.a
+            self.accelerate = True
+
+    def on_key(self, event):
+        if self.run and event.type == KEYDOWN and event.key in self.transitions:
+            self.stop()
+            self.transitions[event.key].start()
+        return self.on_key
+
+    def on_tick(self, event):
+        if self.run:
+            self.entity.set_frame(self.frames[self.frame])
+        return self.on_tick
+
+class loop_while_keydown(looped_animation):
+    def __init__(self, entity, frames, acceleration, key, next_animation=None, transitions=None):
+        looped_animation.__init__(self, entity, frames, acceleration, transitions)
+        self.next = next_animation
+        self.key = key
+
+    def on_key(self, event):
+        if self.run and event.type == KEYUP and event.key == self.key:
+            self.stop()
+            self.next.start()
+        else:
+            looped_animation.on_key(self, event)
+        return self.on_key
+
+class animation(object):
+    '''
+    Displays an animation once and changes to the next animation.
+    '''
+    def __init__(self, entity, frames, next_animation, transitions=None):
+        self.entity = entity
+        self.frames = frames
+        self.frame = 0
+        self.next = next_animation
+        self.transitions = transitions or dict()
+        self.run = False
+        self.entity.keyboard.add(self.on_key)
+        self.entity.clock.add(self.on_tick)
+
+    def start(self):
+        self.run = True
+
+    def stop(self):
+        self.run = False
+        self.frame = 0
+
+    def on_key(self, event):
+        if self.run and event.type == KEYDOWN and event.key in self.transitions:
+            self.stop()
+            self.transitions[event.key].start()
+        return self.on_key
+
+    def on_tick(self, event):
+        if self.run:
+            self.entity.set_frame(self.frames[self.frame])
+            self.frame += 1
+            if self.frame >= len(self.frames):
+                self.stop()
+                self.next.start()
+        return self.on_tick
+    pass
+
 class move_while_key_pressed(object):
     '''
     Accelerates the entity along the given acceleration vector for some frames,

@@ -108,32 +108,52 @@ def main():
     screen = pygame.display.set_mode((1000, 600))
     tick_event = pygame.event.Event(TICK)
     datadir = find_datadir()
-    idle_pose = load_frame(datadir, 'model')
-    idle_flipped = flip_frame(idle_pose)
-    punch_frames = load_frame_sequence(datadir, 'punch', 3)
-    punch_frames.append(idle_pose)
+
+    idle_right = load_frame(datadir, 'model')
+    idle_left = flip_frame(idle_right)
+
+    punch_frames_right = load_frame_sequence(datadir, 'punch', 3)
+    punch_frames_left = map(flip_frame, punch_frames_right)
     punch_delays = [8, 6, 8, 2]
+    punch_frames_right = list(iterate_with_delays(punch_frames_right, punch_delays))
+    punch_frames_left = list(iterate_with_delays(punch_frames_left, punch_delays))
 
     player = components.entity('Player', clock, keyboard,
                                location=(0, 0),
                                motion=components.motion(),
-                               hitbox_passive=idle_pose['hbp'],
-                               hitbox_active=idle_pose['hba'],
-                               graphics=components.graphics(idle_pose['sprite'], idle_pose['sp']))
+                               hitbox_passive=idle_right['hbp'],
+                               hitbox_active=idle_right['hba'],
+                               graphics=components.graphics(idle_right['sprite'], idle_right['sp']))
     regular_physics(player)
-    player.physics.add(ground_limiter(400), components.physics.GROUP_LOCATION)
+    player.physics.add(ground_limiter(550), components.physics.GROUP_LOCATION)
 
     # movement left/right
-    controls.move_while_key_pressed(player, K_RIGHT, (1, 0), 20)
-    animate_on_key(player, K_RIGHT, lambda: iter([idle_pose]))
-    controls.move_while_key_pressed(player, K_LEFT, (-1, 0), 20)
-    animate_on_key(player, K_LEFT, lambda: iter([idle_flipped]))
+    idle_right_state = controls.looped_animation(player, [idle_right], (0, 0))
+    idle_left_state = controls.looped_animation(player, [idle_left], (0, 0))
 
+    walk_right_state = controls.loop_while_keydown(player, [idle_right], (10, 0), K_RIGHT, idle_right_state)
+    walk_left_state = controls.loop_while_keydown(player, [idle_left], (-10, 0), K_LEFT, idle_left_state)
+
+    punch_right_state = controls.animation(player, punch_frames_right, idle_right_state)
+    punch_left_state = controls.animation(player, punch_frames_left, idle_left_state)
+
+    idle_right_state.transitions[K_LEFT] = walk_left_state
+    idle_right_state.transitions[K_RIGHT] = walk_right_state
+    idle_right_state.transitions[K_f] = punch_right_state
+
+    idle_left_state.transitions[K_LEFT] = walk_left_state
+    idle_left_state.transitions[K_RIGHT] = walk_right_state
+    idle_left_state.transitions[K_f] = punch_left_state
+
+    walk_right_state.transitions[K_LEFT] = walk_left_state
+    walk_right_state.transitions[K_f] = punch_right_state
+
+    walk_left_state.transitions[K_RIGHT] = walk_right_state
+    walk_left_state.transitions[K_f] = punch_left_state
+
+    idle_right_state.start()
     # jumping
     controls.jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
-
-    # Epic Punch
-    animate_on_key(player, K_f, lambda: iterate_with_delays(punch_frames, punch_delays))
 
     debug_draw = False
     while True:
