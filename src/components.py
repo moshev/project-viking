@@ -4,21 +4,21 @@ from collections import defaultdict
 from util import arrayify
 from constants import *
 
-class graphics:
+class graphics(object):
     def __init__(self, sprite, anchor=(0, 0)):
         '''
         sprite is a pygame.surface or other blittable object.
-        anchor is a tuple, giving the location of the object's
-        upper-left corner inside the sprite.
+        anchor is a tuple, giving the location of the sprite's
+        upper-left corner, relative to the object's location.point.
         '''
         self.sprite = sprite
         self.anchor = arrayify(anchor)
 
-class motion:
+class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
         self.v, self.a = map(arrayify, (velocity, acceleration))
 
-class location:
+class location(object):
     def __init__(self, point, size):
         '''
         point, size - tuples of two numbers describing the
@@ -32,7 +32,7 @@ def velocity_calculator(entity):
 def location_calculator(entity):
     entity.location.point += entity.motion.v
 
-class physics:
+class physics(object):
     '''
     A collection of ordered physics modifiers on an entity.
     On the start of each tick, the entity's acceleration is zeroed.
@@ -90,7 +90,7 @@ class physics:
                 modifier(self.entity)
         return self.on_tick
 
-class entity:
+class entity(object):
     def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
         self.name = name or self.__class__.__name__
         self.clock = clock

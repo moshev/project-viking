@@ -1,6 +1,8 @@
 from __future__ import print_function, absolute_import
 import time
+import os
 import numpy
+import math
 import pygame
 from pygame.locals import *
 import events
@@ -46,19 +48,22 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((1000, 600))
     tick_event = pygame.event.Event(TICK)
+    datadir = find_datadir()
+    idle_pose = pygame.image.load(os.path.join(datadir, 'model.png'))
 
     player = components.entity('Player', clock, keyboard,
-                               location=components.location((0, 0), (50, 100)),
+                               location=components.location((0, 0), (155, 25)),
                                motion=components.motion(),
-                               graphics=components.graphics(None))
+                               graphics=components.graphics(idle_pose, (-65, -440)))
     regular_physics(player)
     player.physics.add(ground_limiter(400), components.physics.GROUP_LOCATION)
     # movement left/right
-    controls.move_while_key_pressed(player, K_RIGHT, (0.5, 0), 50)
-    controls.move_while_key_pressed(player, K_LEFT, (-0.5, 0), 50)
+    controls.move_while_key_pressed(player, K_RIGHT, (1, 0), 20)
+    controls.move_while_key_pressed(player, K_LEFT, (-1, 0), 20)
     # jumping
     controls.jump_when_key_pressed(player, K_UP, (0, -3.0), 10)
 
+    debug_draw = False
     while True:
         start = time.clock()
 
@@ -69,9 +74,13 @@ def main():
                 return 0
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
+            if event.type == KEYDOWN and event.key == K_F2:
+                debug_draw = not debug_draw
 
-        screen.fill((0, 0, 0))
-        screen.fill((200, 200, 150), pygame.Rect(player.location.point, player.location.size))
+        screen.fill((20, 20, 20))
+        screen.blit(player.graphics.sprite, map(math.trunc, player.location.point + player.graphics.anchor))
+        if debug_draw:
+            screen.fill((200, 200, 50), pygame.Rect(player.location.point, player.location.size))
         pygame.display.flip()
 
         delta = time.clock() - start

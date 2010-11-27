@@ -4,7 +4,7 @@ import components
 from pygame.locals import *
 from util import arrayify
 
-class move_while_key_pressed:
+class move_while_key_pressed(object):
     '''
     Accelerates the entity along the given acceleration vector for some frames,
     then decelerates it when the key is released.
@@ -57,7 +57,7 @@ class move_while_key_pressed:
             self.state = self.state_decelerate
         return self.on_key
         
-class jump_when_key_pressed:
+class jump_when_key_pressed(object):
     '''
     Accelerates the entity along the given acceleration vector for some frames.
     '''

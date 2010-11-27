@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 
-class dispatcher:
+class dispatcher(object):
     def __init__(self, name=None):
         '''
         Creates a new event dispatcher.
