@@ -10,7 +10,7 @@ import components
 import controls
 from constants import *
 from collections import defaultdict
-from util import arrayify, find_datadir, load_image_sequence
+from util import arrayify, find_datadir, load_frame_sequence, load_frame
 FRAME = 0.02
 # g = 980 cm/s**2;
 G = 4000.0 * (FRAME**2)
@@ -20,10 +20,11 @@ def ground_limiter(ground_level):
     Returns a function, that moves an entity's location, making its lower edge stay above the given horizontal line.
     '''
     def limiter(entity):
-        if entity.location.point[1] + entity.location.size[1] >= ground_level:
+        dist = ground_level - (entity.location[1] + entity.hitbox_passive.point[1] + entity.hitbox_passive.size[1])
+        if dist <= 0:
             entity.tags.add('grounded')
-            entity.location.point[1] = ground_level - entity.location.size[1]
-        elif entity.location.point[1] + entity.location.size[1] < ground_level:
+            entity.location[1] += dist
+        elif dist > 0:
             if 'grounded' in entity.tags:
                 entity.tags.remove('grounded')
 
@@ -44,7 +45,7 @@ def gravity(entity):
 
 def iterate_with_delays(frames, delays):
     '''
-    Frames is a list of loaded images (instances of pygame.Surface or similar)
+    Frames is a list of tuples (image, 
     frame_times is a list of numbers - how many ticks to wait before returning the given frame.
     '''
     tick = 0
@@ -70,7 +71,11 @@ class animation(object):
 
     def on_tick(self, event):
         try:
-            self.entity.graphics.sprite = next(self.frames)
+            frame = next(self.frames)
+            self.entity.graphics.sprite = frame['sprite']
+            self.entity.graphics.anchor = frame['sp']
+            self.entity.graphics.hitbox_passive = frame['hbp']
+            self.entity.graphics.hitbox_active = frame['hba']
             return self.on_tick
         except StopIteration:
             return None
@@ -100,15 +105,17 @@ def main():
     screen = pygame.display.set_mode((1000, 600))
     tick_event = pygame.event.Event(TICK)
     datadir = find_datadir()
-    idle_pose = pygame.image.load(os.path.join(datadir, 'model.png'))
-    punch_frames = load_image_sequence(datadir, 'punch', 3)
+    idle_pose = load_frame(datadir, 'model')
+    punch_frames = load_frame_sequence(datadir, 'punch', 3)
     punch_frames.append(idle_pose)
     punch_delays = [8, 6, 8, 2]
 
     player = components.entity('Player', clock, keyboard,
-                               location=components.location((0, 0), (155, 25)),
+                               location=(0, 0),
                                motion=components.motion(),
-                               graphics=components.graphics(idle_pose, (-65, -440)))
+                               hitbox_passive=idle_pose['hbp'],
+                               hitbox_active=idle_pose['hba'],
+                               graphics=components.graphics(idle_pose['sprite'], idle_pose['sp']))
     regular_physics(player)
     player.physics.add(ground_limiter(400), components.physics.GROUP_LOCATION)
 
@@ -137,9 +144,7 @@ def main():
                 debug_draw = not debug_draw
 
         screen.fill((20, 20, 20))
-        screen.blit(player.graphics.sprite, map(math.trunc, player.location.point + player.graphics.anchor))
-        if debug_draw:
-            screen.fill((200, 200, 50), pygame.Rect(player.location.point, player.location.size))
+        screen.blit(player.graphics.sprite, map(math.trunc, player.location + player.graphics.anchor))
         pygame.display.flip()
 
         delta = time.clock() - start

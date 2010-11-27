@@ -9,7 +9,7 @@ class graphics(object):
         '''
         sprite is a pygame.surface or other blittable object.
         anchor is a tuple, giving the location of the sprite's
-        upper-left corner, relative to the object's location.point.
+        upper-left corner, relative to the object's location.
         '''
         self.sprite = sprite
         self.anchor = arrayify(anchor)
@@ -18,7 +18,7 @@ class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
         self.v, self.a = map(arrayify, (velocity, acceleration))
 
-class location(object):
+class hitbox(object):
     def __init__(self, point, size):
         '''
         point, size - tuples of two numbers describing the
@@ -30,7 +30,7 @@ def velocity_calculator(entity):
     entity.motion.v += entity.motion.a
 
 def location_calculator(entity):
-    entity.location.point += entity.motion.v
+    entity.location += entity.motion.v
 
 class physics(object):
     '''
@@ -60,7 +60,7 @@ class physics(object):
         self.entity.clock.add(self.on_tick)
         assert(self.entity.physics is None)
         self.entity.physics = self
-        self.last_position = numpy.array(self.entity.location.point)
+        self.last_position = numpy.array(self.entity.location)
 
     def add(self, modifier, priority):
         self.modifiers[priority].append(modifier)
@@ -83,22 +83,34 @@ class physics(object):
         if event.type != TICK: return self.on_tick
         # Reset acceleration to 0 and velocity to the difference between the last two frames.
         self.entity.motion.a[:] = 0
-        self.entity.motion.v[:] = self.entity.location.point - self.last_position
-        self.last_position[:] = self.entity.location.point
+        self.entity.motion.v[:] = self.entity.location - self.last_position
+        self.last_position[:] = self.entity.location
         for priority in self.modifiers.iterkeys():
             for modifier in self.modifiers[priority]:
                 modifier(self.entity)
         return self.on_tick
 
 class entity(object):
-    def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
+    def __init__(self, name=None, clock=None, keyboard=None, mouse=None,
+                 location=None, motion=None, physics=None,
+                 hitbox_passive=None, hitbox_active=None,
+                 graphics=None):
+        '''
+        clock, keyboard and mouse are evetn dispatchers
+        location is a tuple of x and y coordinates
+        motion, physics are instances of motion and physics
+        hitbox_active and hitbox_passive are instances of hitbox
+        sprite is an image
+        '''
         self.name = name or self.__class__.__name__
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
-        self.location = location
+        self.location = arrayify(location)
         self.motion = motion
         self.graphics = graphics
-        self.physics = None
+        self.physics = physics
+        self.hitbox_active = hitbox_active
+        self.hitbox_passive = hitbox_passive
         self.tags = set()
 

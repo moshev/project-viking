@@ -3,6 +3,7 @@ import sys
 import os
 import numpy
 import pygame.image
+import cPickle as pickle
 
 def arrayify(x):
     '''Constructs a float array from x'''
@@ -22,14 +23,27 @@ def find_datadir():
     '''
     return os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
 
-def load_image_sequence(dir, basename, number, start=1):
+def load_frame(dir, name):
+    '''
+    Returns a dict
+    'sprite': loaded image
+    'sp': sprite point
+    'hbp': passive hitbox
+    'hba': active hitbox
+    '''
+    sprite = pygame.image.load(os.path.join(dir, name) + '.png')
+    datafile = file(os.path.join(dir, name) + '.points')
+    data = pickle.load(datafile)
+    datafile.close()
+    data['sprite'] = sprite
+    return data
+
+def load_frame_sequence(dir, basename, number, start=1):
     '''
     Loads dir/basenameS.png through dir/basenameN+S.png and returns them as a list.
     S and N are start and number, respectively.
     '''
-    return [pygame.image.load(path)
-            for path in (os.path.join(dir, basename + str(n) + '.png')
-                         for n in range(start, number + start))]
+    return [load_frame(dir, basename + str(n)) for n in range(start, number + start)]
 
 def __rk4(y, dy):
     '''
