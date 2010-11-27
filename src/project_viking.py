@@ -140,6 +140,7 @@ def main():
 
     entities = [player1, player2]
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
+    background = pygame.image.load(os.path.join(datadir, 'background.png')).convert()
 
     debug_draw = False
     while True:
@@ -181,7 +182,7 @@ def main():
                 thing2.location[0] -= diff
 
         dead = []
-        screen.fill((20, 20, 20))
+        screen.blit(background, (0, 0))
         for thing in entities:
             if thing.hitpoints <= 0:
                 dead.append(thing)
@@ -207,9 +208,6 @@ def main():
         screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 0, player2.hitpoints * 2, 10))
 
         pygame.display.flip()
-
-        print("Player1 has %d hitpoints left!" % player1.hitpoints)
-        print("Player2 has %d hitpoints left!" % player2.hitpoints)
 
         delta = time.clock() - start
         if delta < FRAME:
