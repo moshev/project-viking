@@ -68,7 +68,7 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     player.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
     player.physics.add(wall, components.physics.GROUP_LOCATION)
     player.physics.add(physics.apply_friction(3), components.physics.GROUP_VELOCITY)
-    player.physics.add(physics.speed_limiter((10, 8000)), components.physics.GROUP_VELOCITY)
+    player.physics.add(physics.speed_limiter((10, 10000)), components.physics.GROUP_VELOCITY)
 
     # movement left/right
     idle_right_state = controls.looped_animation(player, [idle_right], (0, 0))
@@ -119,12 +119,38 @@ def create_sheep(datadir, clock):
     physics.regular_physics(sheep)
     sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
     sheep.physics.add(wall, components.physics.GROUP_LOCATION)
-    sheep.physics.add(physics.apply_friction(0.2), components.physics.GROUP_VELOCITY)
+    sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
     return sheep
+
+def create_drake(datadir, clock):
+    drake_frame = load_frame(datadir, 'drake')
+    drake = components.entity('Drake', clock, location=(500, 0),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=200)
+    drake.set_frame(drake_frame)
+    physics.regular_physics(drake)
+    drake.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
+    drake.physics.add(wall, components.physics.GROUP_LOCATION)
+    drake.physics.add(physics.apply_friction(5), components.physics.GROUP_VELOCITY)
+    return drake
 
 def collision_check(l1, s1, l2, s2):
     r1, r2 = (l1 + s1), (l2 + s2)
     return not ( l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l1[1])
+
+def smooth_clamp_to(v, s):
+    if v[0] == 0:
+        return numpy.array((0.0, math.copysign(s[1], v[1])))
+    elif v[1] == 0:
+        return numpy.array((math.copysign(s[0], v[0]), 0.0))
+    d = numpy.abs(s / v)
+    if d[0] < d[1] and not (math.isnan(d[0]) or math.isinf(d[0])):
+        return v * d[0]
+    elif not (math.isnan(d[1]) or math.isinf(d[1])):
+        return v * d[1]
+    else:
+        return v
 
 def main():
     clock = events.dispatcher('Clock')
@@ -176,12 +202,16 @@ def main():
             p1 = thing1.hitbox_passive.point + thing1.location
             p2 = thing2.hitbox_passive.point + thing2.location
             if collision_check(p1, thing1.hitbox_passive.size, p2, thing2.hitbox_passive.size):
-                if thing1.location[0] < thing2.location[0]:
-                    diff = (p2[0] - p1[0] - thing1.hitbox_passive.size[0]) / 2
-                else:
-                    diff = -(p1[0] - p2[0] - thing2.hitbox_passive.size[0]) / 2
-                thing1.location[0] += diff
-                thing2.location[0] -= diff
+                s1 = thing1.hitbox_passive.size / 2
+                s2 = thing2.hitbox_passive.size / 2
+                c1 = p1 + s1
+                c2 = p2 + s2
+                d = c2 - c1
+                d1 = smooth_clamp_to(d, s1)
+                d2 = smooth_clamp_to(d, s2)
+                k = (d1 + d2 - d) / 2
+                thing1.location -= k
+                thing2.location += k
 
         dead = []
         screen.blit(background, (0, 0))
@@ -206,8 +236,8 @@ def main():
             else:
                 entities.remove(thing)
 
-        screen.fill((120, 50, 50), pygame.Rect(0, 0, player1.hitpoints * 2, 10))
-        screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 0, player2.hitpoints * 2, 10))
+        screen.fill((120, 50, 50), pygame.Rect(0, 10, player1.hitpoints * 2, 10))
+        screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 10, player2.hitpoints * 2, 10))
 
         pygame.display.flip()
 
