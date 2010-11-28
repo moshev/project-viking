@@ -5,6 +5,7 @@ import pygame
 from pygame.locals import *
 import events
 from constants import *
+import components
 from util import arrayify
 
 class graphics:
