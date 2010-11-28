@@ -114,7 +114,7 @@ def create_sheep(datadir, clock):
     sheep = components.entity('Sheep', clock, location=(500, 0),
                               motion=components.motion(),
                               graphics=components.graphics(None),
-                              hitpoints=20)
+                              hitpoints=2)
     sheep.set_frame(sheep_frame)
     physics.regular_physics(sheep)
     sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
@@ -127,7 +127,7 @@ def create_floaty_sheep(datadir, clock):
     sheep = components.entity('Sheep', clock, location=(500, 400),
                               motion=components.motion(),
                               graphics=components.graphics(None),
-                              hitpoints=20)
+                              hitpoints=2)
     sheep.set_frame(sheep_frame)
     components.physics(sheep)
     sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
