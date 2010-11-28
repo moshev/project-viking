@@ -67,15 +67,15 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     physics.regular_physics(player)
     player.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
     player.physics.add(wall, components.physics.GROUP_LOCATION)
-    player.physics.add(physics.apply_friction(1), components.physics.GROUP_VELOCITY)
-    player.physics.add(physics.speed_limiter((10, 10000)), components.physics.GROUP_VELOCITY)
+    player.physics.add(physics.apply_friction(3), components.physics.GROUP_VELOCITY)
+    player.physics.add(physics.speed_limiter((10, 8000)), components.physics.GROUP_VELOCITY)
 
     # movement left/right
     idle_right_state = controls.looped_animation(player, [idle_right], (0, 0))
     idle_left_state = controls.looped_animation(player, [idle_left], (0, 0))
 
-    walk_right_state = controls.loop_while_keydown(player, run_frames_right, (10, 0), key_right, idle_right_state)
-    walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-10, 0), key_left, idle_left_state)
+    walk_right_state = controls.loop_while_keydown(player, run_frames_right, (5, 0), key_right, idle_right_state)
+    walk_left_state = controls.loop_while_keydown(player, run_frames_left, (-5, 0), key_left, idle_left_state)
 
     jump_right_state = controls.animation_while_keydown(player, jump_frames_right, key_jump, idle_right_state)
     jump_left_state = controls.animation_while_keydown(player, jump_frames_left, key_jump, idle_left_state)
@@ -158,6 +158,8 @@ def main():
                     debug_draw = not debug_draw
                 elif event.key == K_F3:
                     entities.append(create_sheep(datadir, clock))
+                elif event.key == K_F4:
+                    entities.append(create_drake(datadir, clock))
 
         for thing1, thing2 in itertools.product(entities, entities):
             if thing1 is thing2:
@@ -196,7 +198,7 @@ def main():
 
         for thing in dead:
             scream.play()
-            if thing.name != 'Sheep':
+            if thing.name == 'Player':
                 thing.hitpoints = 100
                 thing.location[:] = (500, -10)
                 if thing.physics is not None:

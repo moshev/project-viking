@@ -17,7 +17,8 @@ class looped_animation(object):
         self.run = False
         self.a = arrayify(acceleration)
         self.entity.physics.add(self.on_physics, components.physics.GROUP_ACCELERATION)
-        self.entity.keyboard.add(self.on_key)
+        if self.entity.keyboard is not None:
+            self.entity.keyboard.add(self.on_key)
         self.entity.clock.add(self.on_tick)
 
     def start(self):
