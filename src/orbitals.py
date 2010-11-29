@@ -6,6 +6,7 @@ from pygame.locals import *
 import events
 from constants import *
 import components
+import random
 from util import arrayify
 
 class graphics:
@@ -15,7 +16,7 @@ class graphics:
         anchor is a tuple, giving the location of the object's
         upper-left corner inside the sprite.
         '''
-        self.color, self.size = color, size
+        self.color, self.size = color, arrayify(size)
 
 class motion:
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
@@ -110,7 +111,8 @@ class attractor:
 
     def on_tick(self, event):
         v = self.location - self.entity.location
-        k = (v * self.strength) / (numpy.dot(v, v) ** 1.5)
+        d = numpy.sqrt(numpy.dot(v, v))
+        k = (v * self.strength) / (d * d * d)
         self.entity.motion.a += k
         return self.on_tick
 
@@ -182,7 +184,8 @@ class motion_cleaner:
 
     def on_tick(self, event):
         self.entity.motion.a[:] = 0.0
-        self.entity.motion.v[:] = self.entity.location - self.last_location
+        self.entity.motion.v[:] = self.entity.location
+        self.entity.motion.v -= self.last_location
         self.last_location[:] = self.entity.location
         return self.on_tick
 
@@ -198,13 +201,17 @@ class location_updater:
         self.entity.location += self.entity.motion.v
         return self.on_tick
 
+def rand_colour():
+    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
-    rect = entity('Red Rect', clock,
-                  location=(300, 100),
-                  motion=motion(velocity=(6,-0.5)),
-                  graphics=graphics((255, 0, 0), (20, 20)))
+    rects = [entity('Rect', clock,
+                    location=(300 + random.randint(0, 20), 100 + random.randint(0, 10)),
+                    motion=motion(velocity=(2 + random.random() * 0.5, -random.random() - 0.5)),
+                    graphics=graphics(rand_colour() , (2, 2)))
+             for x in range(140)]
     player = entity('White Rect', clock, keyboard,
                     location=(500, 100),
                     motion=motion([0, 0], [0, 0]),
@@ -213,30 +220,28 @@ def main():
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
-    a1l = (430, 300)
-    a2l = (570, 300)
+    a1l = (400, 500)
+    a2l = (600, 500)
     adist = 50
-    astr = 5000
+    astr = 2000
     attractor1_centre = entity('A1',
                                location=a1l,
                                graphics=graphics((128, 227, 80), (5, 5)))
     attractor2_centre = entity('A2',
                                location=a2l,
                                graphics=graphics((128, 80, 227), (5, 5)))
-    things = [rect, player]
+    things = rects + [player]
     for thing in things:
         attractor(thing, a1l, astr)
         attractor(thing, a2l, astr)
         velocity_updater(thing)
         location_updater(thing)
-        court_order(thing, a1l, adist)
-        court_order(thing, a2l, adist)
-        location_clamper(thing, (0, 0), (1000, 600))
+        location_clamper(thing, (0, 0), (1000, 1000))
         motion_cleaner(thing)
     things.extend([attractor1_centre, attractor2_centre])
     frame_time = 0.02
     pygame.init()
-    screen = pygame.display.set_mode((1000, 600))
+    screen = pygame.display.set_mode((1000, 1000))
     tick_event = pygame.event.Event(TICK)
     while True:
         start = time.clock()
@@ -252,15 +257,15 @@ def main():
         screen.fill((0, 0, 0))
         for thing in things:
             if thing.graphics is not None and thing.location is not None:
-                screen.fill(thing.graphics.color, pygame.Rect(thing.location[0] - thing.graphics.size[0] / 2,
-                                                              thing.location[1] - thing.graphics.size[1] / 2,
-                                                              thing.graphics.size[0],
-                                                              thing.graphics.size[1]))
+                screen.fill(thing.graphics.color, pygame.Rect(thing.location - thing.graphics.size / 2,
+                                                              thing.graphics.size))
         pygame.display.flip()
 
         delta = time.clock() - start
         if delta < frame_time:
             time.sleep(frame_time - delta)
+        elif delta > frame_time + 0.01:
+            print("Overtime:", delta - frame_time)
 
 if __name__ == '__main__':
     main()
