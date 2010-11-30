@@ -209,8 +209,8 @@ def main():
     keyboard = events.dispatcher('Keyboard')
     rects = [entity('Rect', clock,
                     location=(300 + random.randint(0, 20), 100 + random.randint(0, 10)),
-                    motion=motion(velocity=(2 + random.random() * 0.5, -random.random() - 0.5)),
-                    graphics=graphics(rand_colour() , (2, 2)))
+                    motion=motion(velocity=(4 + random.random() * 2, -random.random() - 0.5)),
+                    graphics=graphics(rand_colour() , (8, 8)))
              for x in range(140)]
     player = entity('White Rect', clock, keyboard,
                     location=(500, 100),
@@ -223,7 +223,7 @@ def main():
     a1l = (400, 500)
     a2l = (600, 500)
     adist = 50
-    astr = 2000
+    astr = 4000
     attractor1_centre = entity('A1',
                                location=a1l,
                                graphics=graphics((128, 227, 80), (5, 5)))
@@ -236,7 +236,6 @@ def main():
         attractor(thing, a2l, astr)
         velocity_updater(thing)
         location_updater(thing)
-        location_clamper(thing, (0, 0), (1000, 1000))
         motion_cleaner(thing)
     things.extend([attractor1_centre, attractor2_centre])
     frame_time = 0.02
