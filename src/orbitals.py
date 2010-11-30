@@ -204,6 +204,12 @@ class location_updater:
 def rand_colour():
     return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
+def collision_check(c1, s1, c2, s2):
+    return not (c2[0] - s2[0] > c1[0] + s1[0] or
+                c2[0] + s2[0] < c1[0] - s1[0] or
+                c2[1] - s2[1] > c1[1] + s1[1] or
+                c2[1] + s2[1] < c1[1] - s1[1])
+
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
