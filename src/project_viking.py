@@ -114,9 +114,22 @@ def create_sheep(datadir, clock):
     sheep = components.entity('Sheep', clock, location=(500, 0),
                               motion=components.motion(),
                               graphics=components.graphics(None),
-                              hitpoints=20)
+                              hitpoints=2)
     sheep.set_frame(sheep_frame)
     physics.regular_physics(sheep)
+    sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
+    sheep.physics.add(wall, components.physics.GROUP_LOCATION)
+    sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
+    return sheep
+
+def create_floaty_sheep(datadir, clock):
+    sheep_frame = load_frame(datadir, 'sheep')
+    sheep = components.entity('Sheep', clock, location=(500, 400),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=2)
+    sheep.set_frame(sheep_frame)
+    components.physics(sheep)
     sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
     sheep.physics.add(wall, components.physics.GROUP_LOCATION)
     sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
@@ -246,6 +259,8 @@ def main():
                     entities.append(create_sheep(datadir, clock))
                 elif event.key == K_F4:
                     entities.append(create_drake(datadir, clock))
+                elif event.key == K_F5:
+                    entities.append(create_floaty_sheep(datadir, clock))
 
         apcollisions = active_passive_collisions(entities)
         for i1, i2 in itertools.product(range(len(entities)), range(len(entities))):
