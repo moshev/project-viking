@@ -165,6 +165,66 @@ def smooth_clamp_to(v, s):
     else:
         return v
 
+def passive_passive_collisions(things):
+    '''
+    Returns a NxN array where element at [i, j] says if
+    thing i collides with thing j with respect to their passive hitboxes.
+
+    To see if two boxes do NOT collide, the check is if
+    my left side is past the other's right side or
+    my top side is past the other's bottom side
+
+    This is done by creating one array of top-left pairs and one of bottom-right pairs.
+    Then every element of top-left is compared to every element of bottom-right and
+    the result is an NxN matrix of boolean pairs.
+
+    The pairs are reduced to a single boolean by applying the or operation.
+    Then the result at [i,j] is combined with the result at [j,i], giving the final
+    result for each cell.
+
+    That is negated to obtain whether two boxes cross each other.
+    '''
+    toplefts = numpy.array([thing.hitbox_passive.point for thing in things])
+    bottomrights = toplefts + [thing.hitbox_passive.size for thing in things]
+    locations = numpy.array([thing.location for thing in things])
+    toplefts += locations
+    bottomrights += locations
+    halfnegcheck = numpy.any(toplefts[numpy.newaxis,:,:] > bottomrights[:,numpy.newaxis,:], axis=2)
+    return numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
+
+def active_passive_collisions(things):
+    '''
+    Returns an NxN array, where element at [i, j] says if
+    thing i's active hitbox crosses thing j's active hitbox.
+    An active hitbox isn't considered if any of its dimensions is not-positive.
+
+    See comment for passive_passive_collisions for longer explanation.
+    The main difference is that we can't cheat here and do half the checks,
+    then transpose, we need to do all checks.
+    '''
+    locations = numpy.array([thing.location for thing in things])
+
+    toplefts_passive = numpy.array([thing.hitbox_passive.point for thing in things])
+    bottomrights_passive = toplefts_passive + [thing.hitbox_passive.size for thing in things]
+    toplefts_passive += locations
+    bottomrights_passive += locations
+    toplefts_passive = toplefts_passive.reshape(1, -1, 2)
+    bottomrights_passive = bottomrights_passive.reshape(1, -1, 2)
+
+    toplefts_active = numpy.array([thing.hitbox_active.point for thing in things])
+    bottomrights_active = toplefts_active + [thing.hitbox_active.size for thing in things]
+    toplefts_active += locations
+    bottomrights_active += locations
+    toplefts_active = toplefts_active.reshape(-1, 1, 2)
+    bottomrights_active = bottomrights_active.reshape(-1, 1, 2)
+
+    negcheck = numpy.logical_or(numpy.any(toplefts_active > bottomrights_passive, axis=2),
+                                numpy.any(bottomrights_active < toplefts_passive, axis=2))
+
+    legible = numpy.all(numpy.greater([thing.hitbox_active.size for thing in things], 0), axis=1).reshape(-1, 1)
+
+    return numpy.logical_and(numpy.logical_not(negcheck), legible)
+
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
@@ -202,21 +262,22 @@ def main():
                 elif event.key == K_F5:
                     entities.append(create_floaty_sheep(datadir, clock))
 
-        for thing1, thing2 in itertools.product(entities, entities):
-            if thing1 is thing2:
+        apcollisions = active_passive_collisions(entities)
+        for i1, i2 in itertools.product(range(len(entities)), range(len(entities))):
+            if i1 == i2:
                 continue
-            if any(thing1.hitbox_active.size <= 0):
-                continue
-            if collision_check(thing1.hitbox_active.point + thing1.location, thing1.hitbox_active.size,
-                            thing2.hitbox_passive.point + thing2.location, thing2.hitbox_passive.size):
-                thing2.hitpoints -= 1
+            if apcollisions[i1, i2]:
+                entities[i2].hitpoints -= 1
 
-        for thing1, thing2 in itertools.product(entities, entities):
-            if thing1 is thing2:
+        ppcollisions = passive_passive_collisions(entities)
+        move = numpy.zeros((len(entities), 2))
+        for (thing1, thing2), (i1, i2) in zip(itertools.product(entities, entities),
+                                              itertools.product(range(len(entities)), range(len(entities)))):
+            if i1 >= i2:
                 continue
-            p1 = thing1.hitbox_passive.point + thing1.location
-            p2 = thing2.hitbox_passive.point + thing2.location
-            if collision_check(p1, thing1.hitbox_passive.size, p2, thing2.hitbox_passive.size):
+            if ppcollisions[i1, i2]:
+                p1 = thing1.hitbox_passive.point + thing1.location
+                p2 = thing2.hitbox_passive.point + thing2.location
                 s1 = thing1.hitbox_passive.size / 2
                 s2 = thing2.hitbox_passive.size / 2
                 c1 = p1 + s1
@@ -225,8 +286,11 @@ def main():
                 d1 = smooth_clamp_to(d, s1)
                 d2 = smooth_clamp_to(d, s2)
                 k = (d1 + d2 - d) / 2
-                thing1.location -= k
-                thing2.location += k
+                move[i1] -= k
+                move[i2] += k
+
+        for thing, vector in zip(entities, move):
+            thing.location += vector
 
         dead = []
         screen.blit(background, (0, 0))
