@@ -9,6 +9,52 @@ import components
 import random
 from util import arrayify
 
+class arraystore(object):
+    '''
+    Stores arrays in a list-like fashion, backed by an N+1-dimensional array.
+    '''
+    def __init__(self, shape, capacity=16, dtype=numpy.float64):
+        '''
+        Creates an array store.
+        shape - the shape of the elements
+        capacity - how much to preallocate
+        dtype - see numpy.array; default is float64
+        '''
+        self.shape = [capacity]
+        self.shape.extend(shape)
+        self.array = numpy.zeros(self.shape, dtype=dtype)
+        self.free = numpy.ones(capacity, dtype=numpy.bool)
+
+    def alloc(self):
+        '''
+        Returns the index of an unused array.
+        '''
+        free = self.free.nonzero()[0]
+        if len(free) > 0:
+            i = free[0]
+            self.free[i] = False
+            return i
+        else:
+            index = self.shape[0]
+            self.shape[0] *= 2
+            self.free.resize(self.shape[0], refcheck=False)
+            self.free[index + 1:] = True
+            self.free[index] = False
+            try:
+                self.array.resize(self.shape)
+            except ValueError:
+                arr = numpy.zeros(self.shape)
+                arr[:index] = self.array
+                self.array = arr
+            return index
+
+    def free(self, index):
+        '''
+        Frees an array.
+        '''
+        self.free[index] = True
+        self.array[index][:] = 0
+
 class graphics(object):
     def __init__(self, color, size):
         '''
