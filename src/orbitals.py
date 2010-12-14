@@ -9,7 +9,7 @@ import components
 import random
 from util import arrayify
 
-class graphics:
+class graphics(object):
     def __init__(self, color, size):
         '''
         sprite is a pygame.surface or other blittable object.
@@ -18,11 +18,11 @@ class graphics:
         '''
         self.color, self.size = color, arrayify(size)
 
-class motion:
+class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
         self.v, self.a = map(arrayify, (velocity, acceleration))
 
-class entity:
+class entity(object):
     def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
         self.name = name or self.__class__.__name__
         self.clock = clock
@@ -33,7 +33,7 @@ class entity:
         self.graphics = graphics
         self.physics = None
 
-class accelerate_on_keypress:
+class accelerate_on_keypress(object):
     def __init__(self, entity, key, acceleration, frames=1):
         '''
         Accelerates the entity along the given acceleration vector for frames, or until key is released.
@@ -72,7 +72,7 @@ class accelerate_on_keypress:
                 self.active = False
         return self.on_tick
 
-class repulsor:
+class repulsor(object):
     '''
     Repulses the actor from the given wall (line).
     The formula used is normal * strength/distance, where distance
@@ -94,7 +94,7 @@ class repulsor:
             self.entity.motion.a += self.normal * self.strength / d
         return self.on_tick
 
-class attractor:
+class attractor(object):
     '''
     Attracts the entity, according to the law of gravity.
     '''
@@ -116,7 +116,7 @@ class attractor:
         self.entity.motion.a += k
         return self.on_tick
 
-class location_clamper:
+class location_clamper(object):
     '''
     Keeps the entity's location within the given boundaries.
     '''
@@ -129,7 +129,7 @@ class location_clamper:
         numpy.clip(self.entity.location, self.min, self.max, self.entity.location)
         return self.on_tick
 
-class location_warper:
+class location_warper(object):
     def __init__(self, entity, min, max):
         self.entity = entity
         self.min, self.max = numpy.array(min), numpy.array(max)
@@ -143,7 +143,7 @@ class location_warper:
                 self.entity.location[i] = min + v - max
         return self.on_tick
 
-class court_order:
+class court_order(object):
     '''
     Keeps the entity at least distance away from the given point.
     '''
@@ -161,7 +161,7 @@ class court_order:
             self.entity.location[:] = self.location + r * self.distance
         return self.on_tick
 
-class velocity_updater:
+class velocity_updater(object):
     '''
     Updates the entity's velocity, according to acceleration.
     '''
@@ -173,7 +173,7 @@ class velocity_updater:
         self.entity.motion.v += self.entity.motion.a
         return self.on_tick
 
-class motion_cleaner:
+class motion_cleaner(object):
     '''
     Sets the entity's acceleration to 0 and velocity according to last frame->this difference.
     '''
@@ -189,7 +189,7 @@ class motion_cleaner:
         self.last_location[:] = self.entity.location
         return self.on_tick
 
-class location_updater:
+class location_updater(object):
     '''
     Moves the entity, according to velocity.
     '''
