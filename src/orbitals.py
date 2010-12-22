@@ -262,7 +262,7 @@ def main():
     rects = [entity('Rect', clock,
                     location=(300 + random.randint(0, 20), 100 + random.randint(0, 10)),
                     motion=motion(velocity=(4 + random.random() * 2, -random.random() - 0.5)),
-                    graphics=graphics(rand_colour() , (8, 8)))
+                    graphics=graphics(rand_colour() , (20, 20)))
              for x in range(140)]
     player = entity('White Rect', clock, keyboard,
                     location=(500, 100),
@@ -292,8 +292,10 @@ def main():
     things.extend([attractor1_centre, attractor2_centre])
     frame_time = 0.02
     pygame.init()
-    screen = pygame.display.set_mode((1000, 1000))
+    screen = pygame.display.set_mode((1000, 1000), DOUBLEBUF)
+    print(pygame.display.get_driver())
     tick_event = pygame.event.Event(TICK)
+    rects = []
     while True:
         start = time.clock()
 
@@ -305,12 +307,15 @@ def main():
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        screen.fill((0, 0, 0))
+        oldrects = rects
+        rects = []
         for thing in things:
             if thing.graphics is not None and thing.location is not None:
-                screen.fill(thing.graphics.color, pygame.Rect(thing.location - thing.graphics.size / 2,
-                                                              thing.graphics.size))
-        pygame.display.flip()
+                rects.append(pygame.Rect(thing.location - thing.graphics.size / 2,
+                                         thing.graphics.size))
+                screen.fill(thing.graphics.color, rects[-1])
+
+        pygame.display.update(rects)
 
         delta = time.clock() - start
         if delta < frame_time:
