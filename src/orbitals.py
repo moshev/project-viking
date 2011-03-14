@@ -5,6 +5,7 @@ import numpy
 import pygame
 from pygame.locals import *
 import pyglet
+pyglet.options['debug_gl'] = False
 from pyglet.gl import *
 import events
 from constants import *
@@ -12,59 +13,13 @@ import components
 import random
 from util import arrayify
 
-class arraystore(object):
-    '''
-    Stores arrays in a list-like fashion, backed by an N+1-dimensional array.
-    '''
-    def __init__(self, shape, capacity=16, dtype=numpy.float64):
-        '''
-        Creates an array store.
-        shape - the shape of the elements
-        capacity - how much to preallocate
-        dtype - see numpy.array; default is float64
-        '''
-        self.shape = [capacity]
-        self.shape.extend(shape)
-        self.array = numpy.zeros(self.shape, dtype=dtype)
-        self.free = numpy.ones(capacity, dtype=numpy.bool)
-
-    def alloc(self):
-        '''
-        Returns the index of an unused array.
-        '''
-        free = self.free.nonzero()[0]
-        if len(free) > 0:
-            i = free[0]
-            self.free[i] = False
-            return i
-        else:
-            index = self.shape[0]
-            self.shape[0] *= 2
-            self.free.resize(self.shape[0], refcheck=False)
-            self.free[index + 1:] = True
-            self.free[index] = False
-            try:
-                self.array.resize(self.shape)
-            except ValueError:
-                arr = numpy.zeros(self.shape)
-                arr[:index] = self.array
-                self.array = arr
-            return index
-
-    def free(self, index):
-        '''
-        Frees an array.
-        '''
-        self.free[index] = True
-        self.array[index][:] = 0
-
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
         if initial_capacity <= 0:
             raise ValueError('Initial capacity must be positive')
         self.shape=[initial_capacity] + list(shape)
         self.size = 0
-        self.values = numpy.zeros(self.shape, dtype)
+        self.values = numpy.ones(self.shape, dtype)
         self.allocated = numpy.zeros(initial_capacity, numpy.bool)
         self.len = 0
     
@@ -97,6 +52,7 @@ class sparse_array(object):
         '''Marks a cell as free.
         idx is the number returned by the add method when adding a new vector.'''
 
+        self.values[idx] = 1
         self.allocated[idx] = False
         self.len -= 1
 
@@ -124,10 +80,10 @@ class physics(object):
         self.masses = sparse_array((1,))
 
     def tick(self):
-        numpy.divide(self.forces.v, self.masses.v, self.forces.v)
-        numpy.add(self.velocities.v, self.forces.v, self.velocities.v)
-        self.forces.v[:] = 0
-        numpy.add(self.locations.v, self.velocities.v, self.locations.v)
+        numpy.divide(self.forces.values, self.masses.values, self.forces.values)
+        numpy.add(self.velocities.values, self.forces.values, self.velocities.values)
+        self.forces.values[:] = 0
+        numpy.add(self.locations.values, self.velocities.values, self.locations.values)
 
     def add(self, location, velocity, force, mass):
         '''Adds a new entity's properties and returns an index to them.
@@ -156,19 +112,19 @@ class physics(object):
 
     @property
     def l(self):
-        return self.locations.v
+        return self.locations.values
 
     @property
     def v(self):
-        return self.velocities.v
+        return self.velocities.values
 
     @property
     def f(self):
-        return self.forces.v
+        return self.forces.values
 
     @property
     def m(self):
-        return self.masses.v
+        return self.masses.values
 
 def update_physics_on_tick(physics, clock):
     def on_tick(event):
@@ -223,7 +179,8 @@ class graphics:
         anchor is a tuple, giving the location of the object's
         upper-left corner inside the sprite.
         '''
-        self.color, self.size = color, arrayify(size)
+        self.color = numpy.array(color, dtype=numpy.int8)
+        self.size = arrayify(size)
 
 class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
@@ -316,15 +273,15 @@ class attractor(object):
         self.clock.add(self.on_tick)
         
         # storage for computing the accelerations
-        self.forces = numpy.zeros((len(self.physics), 2))
+        self.forces = numpy.zeros((len(self.physics.f), 2))
         
         # storage for computing dot products
-        self.adot = numpy.zeros((len(self.physics), 2))
+        self.adot = numpy.zeros((len(self.physics.f), 2))
 
     def on_tick(self, event):
-        if len(self.forces) != len(self.physics):
-            self.forces.resize((len(self.physics), 2))
-            self.adot.resize((len(self.physics), 2))
+        if len(self.forces) != len(self.physics.f):
+            self.forces = numpy.zeros((len(self.physics.f), 2))
+            self.adot = numpy.zeros((len(self.physics.f), 2))
 
         # The formula is
         # a = d * K / r²
@@ -445,23 +402,23 @@ def main():
     phy = physics()
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
-                                               location=(300 + random.randint(0, 20),
-                                                         100 + random.randint(0, 10)),
+                                               location=(180 + random.randint(0, 20),
+                                                         60 + random.randint(0, 10)),
                                                velocity=(4 + random.random() * 2,
                                                          -random.random() - 0.5)),
                     graphics=graphics(rand_colour() , (4, 4)))
-             for _ in range(2)]
+             for _ in range(4000)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
-                                               location=(500, 100),
+                                               location=(300, 60),
                                                velocity=(0, 0)),
                     graphics=graphics((227, 227, 227), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
-    a1l = (400, 500)
-    a2l = (600, 500)
+    a1l = (240, 300)
+    a2l = (360, 300)
     adist = 50
     astr = 4000
     aphy = physics()
@@ -474,22 +431,31 @@ def main():
     things = [attractor1_centre, attractor2_centre, player] + rects
     attractor(clock, phy, a1l, astr)
     attractor(clock, phy, a2l, astr)
-    update_physics_on_tick(phy, clock)
-    frame_time = 0.02
+    frame_time = 0.04
     pygame.init()
-    screen = pygame.display.set_mode((1000, 1000), DOUBLEBUF | OPENGL)
+    screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
     glEnableClientState(GL_VERTEX_ARRAY)
     glEnableClientState(GL_COLOR_ARRAY)
     glClearColor(0.0, 0.0, 0.0, 0.0)
     glMatrixMode(GL_PROJECTION)
-    glOrtho(0, 1000, 1000, 0, -1, 1)
+    glOrtho(0, 600, 600, 0, -1, 1)
     glMatrixMode(GL_MODELVIEW)
     tick_event = pygame.event.Event(TICK)
-    rects = []
+    drawables_indices = [i for thing, i in zip(things, range(len(things))) if thing.graphics is not None]
+    drawables_physics_indices = [things[i].physics.idx for i in drawables_indices]
+    n_drawables = len(drawables_indices)
+    colors = numpy.zeros((n_drawables, 4, 3), dtype=numpy.uint8)
+    i_color = 0
+    zzrect = numpy.array([-3, -3, -3, 3, 3, 3, 3, -3]).reshape(1, 4, 2)
+    for it, i in zip(drawables_indices, range(len(drawables_indices))):
+        colors[i] = things[it].graphics.color.reshape(1, 3)
+    vertex_list = pyglet.graphics.vertex_list(n_drawables * 4, ('v2f/stream', [0.0,] * (n_drawables * 8)),
+                                                               ('c3B/static', colors.ravel()))
     while True:
         start = time.clock()
 
         clock.dispatch(tick_event)
+        phy.tick()
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -497,21 +463,11 @@ def main():
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        rects = []
-        colours = []
         glClear(GL_COLOR_BUFFER_BIT)
-        for thing in things:
-            if thing.graphics is not None:
-                ul = thing.physics.location - thing.graphics.size / 2
-                lr = thing.physics.location + thing.graphics.size / 2
-                rects.extend((ul[0], ul[1],
-                              ul[0], lr[1],
-                              lr[0], lr[1],
-                              lr[0], ul[1]))
-                colours.extend(thing.graphics.color * 4)
-        glColor3f(1.0, 1.0, 1.0)
-        pyglet.graphics.draw(len(rects) // 2, GL_QUADS, ('v2f', rects), ('c3B', colours))
-
+        vertices = phy.locations.v[drawables_physics_indices].repeat(4, axis=0).reshape(-1, 4, 2)
+        vertices += zzrect
+        vertex_list.vertices = vertices.ravel()
+        vertex_list.draw(GL_QUADS)
         pygame.display.flip()
 
         delta = time.clock() - start
