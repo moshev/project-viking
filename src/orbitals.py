@@ -1,4 +1,5 @@
-from __future__ import print_function, absolute_import
+# -*- coding: utf-8 -*-
+from __future__ import print_function, absolute_import, division
 import time
 import numpy
 import pygame
@@ -57,7 +58,165 @@ class arraystore(object):
         self.free[index] = True
         self.array[index][:] = 0
 
-class graphics(object):
+class sparse_array(object):
+    def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
+        if initial_capacity <= 0:
+            raise ValueError('Initial capacity must be positive')
+        self.shape=[initial_capacity] + list(shape)
+        self.size = 0
+        self.values = numpy.zeros(self.shape, dtype)
+        self.allocated = numpy.zeros(initial_capacity, numpy.bool)
+        self.len = 0
+    
+    def add(self, vector):
+        '''Adds a vector to the array and returns its index in the sparse array.
+        If there is no free space, the storage space is grown twice.'''
+
+        candidate = numpy.argmin(self.allocated)
+        if self.allocated[candidate]:
+            # allocate more space
+            self.shape[0] *= 2
+            try:
+                self.values.resize(self.shape)
+            except ValueError:
+                print("fixme: Somebody has references to values of a sparse array.")
+                self.values.resize(self.shape, False)
+            try:
+                self.allocated.resize(self.shape[0])
+            except ValueError:
+                print("fixme: Somebody has references to bitmap of a sparse array.")
+                self.allocated.resize(self.shape, False)
+            # now the next index is free and allocated
+            candidate += 1
+        self.values[candidate] = vector
+        self.allocated[candidate] = True
+        self.len += 1
+        return candidate
+
+    def release(self, idx):
+        '''Marks a cell as free.
+        idx is the number returned by the add method when adding a new vector.'''
+
+        self.allocated[idx] = False
+        self.len -= 1
+
+    @property
+    def v(self):
+        '''Returns an array of all allocated vectors in this sparse array'''
+
+        return self.values[self.allocated]
+
+    def __len__(self):
+        '''Returns the number of registered objects.'''
+
+        return self.len
+
+class physics(object):
+    '''Holds the physics properties for all entities.
+    Each entity has a location, velocity, mass and forces acting on it this frame.
+    The intention is to accumulate all forces acting on each entity this frame
+    and then call tick() to update the other values.'''
+
+    def __init__(self):
+        self.locations = sparse_array((2,))
+        self.velocities = sparse_array((2,))
+        self.forces = sparse_array((2,))
+        self.masses = sparse_array((1,))
+
+    def tick(self):
+        numpy.divide(self.forces.v, self.masses.v, self.forces.v)
+        numpy.add(self.velocities.v, self.forces.v, self.velocities.v)
+        self.forces.v[:] = 0
+        numpy.add(self.locations.v, self.velocities.v, self.locations.v)
+
+    def add(self, location, velocity, force, mass):
+        '''Adds a new entity's properties and returns an index to them.
+        You should use the index to mark these properties as free after
+        the entity doesn't exist anymore.'''
+
+        idx_location = self.locations.add(location)
+        idx_velocity = self.velocities.add(velocity)
+        idx_force = self.forces.add(force)
+        idx_mass = self.masses.add(mass)
+        assert idx_location == idx_velocity == idx_force == idx_mass
+        return idx_location
+
+    def release(self, idx):
+        '''Marks index as free.'''
+
+        self.locations.release(idx)
+        self.velocities.release(idx)
+        self.forces.release(idx)
+        self.masses.release(idx)
+
+    def __len__(self):
+        '''Returns the number of registered objects.'''
+
+        return len(self.locations)
+
+    @property
+    def l(self):
+        return self.locations.v
+
+    @property
+    def v(self):
+        return self.velocities.v
+
+    @property
+    def f(self):
+        return self.forces.v
+
+    @property
+    def m(self):
+        return self.masses.v
+
+def update_physics_on_tick(physics, clock):
+    def on_tick(event):
+        physics.tick()
+        return on_tick
+
+    clock.add(on_tick)
+
+class physics_properties(object):
+    '''Location, velocity, speed and mass'''
+
+    def __init__(self, physics, location=(0, 0), velocity=(0, 0), force=(0, 0), mass=1):
+        self.physics = physics
+        self.idx = self.physics.add(location, velocity, force, mass)
+
+    @property
+    def location(self):
+        return self.physics.locations.values[self.idx]
+
+    @location.setter
+    def location(self, location):
+        self.physics.locations.values[self.idx][:] = location
+
+    @property
+    def velocity(self):
+        return self.physics.velocities.values[self.idx]
+
+    @velocity.setter
+    def velocity(self, velocity):
+        self.physics.velocities.values[self.idx][:] = velocity
+
+    @property
+    def force(self):
+        return self.physics.forces.values[self.idx]
+
+    @force.setter
+    def force(self, force):
+        self.physics.forces.values[self.idx][:] = force
+
+    @property
+    def mass(self):
+        return self.physics.masses.values[self.idx]
+
+    @mass.setter
+    def mass(self, mass):
+        self.physics.masses.values[self.idx][:] = mass
+
+class graphics:
     def __init__(self, color, size):
         '''
         sprite is a pygame.surface or other blittable object.
@@ -71,15 +230,13 @@ class motion(object):
         self.v, self.a = map(arrayify, (velocity, acceleration))
 
 class entity(object):
-    def __init__(self, name=None, clock=None, keyboard=None, mouse=None, location=None, motion=None, graphics=None):
+    def __init__(self, name=None, clock=None, keyboard=None, mouse=None, physics=None, graphics=None):
         self.name = name or self.__class__.__name__
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
-        self.location = arrayify(location)
-        self.motion = motion
+        self.physics = physics
         self.graphics = graphics
-        self.physics = None
 
 class accelerate_on_keypress(object):
     def __init__(self, entity, key, acceleration, frames=1):
@@ -114,7 +271,7 @@ class accelerate_on_keypress(object):
         if not self.active:
             return None
         else:
-            self.entity.motion.a += self.acceleration
+            self.entity.physics.force += self.acceleration
             self.current_frame += 1
             if self.current_frame == self.frames:
                 self.active = False
@@ -143,25 +300,49 @@ class repulsor(object):
         return self.on_tick
 
 class attractor(object):
-    '''
-    Attracts the entity, according to the law of gravity.
-    '''
-    def __init__(self, entity, location, strength):
-        '''
+    ''' Attracts all entities with the given physics, according to the law of gravity.  '''
+
+    def __init__(self, clock, physics, location, strength):
+        '''Initialise a new attractor.
+        physics - the physics object containing all physics info on the entities.
         location - a sequence of 2 numbers - the coordinates of the centre of mass.
         strength - used in calculating attraction. The formula used is:
-            F = strength / distance ** 2
-        '''
-        self.entity = entity
+            F = strength / distance ** 2 '''
+
+        self.clock = clock
+        self.physics = physics
         self.location = numpy.array(location)
         self.strength = strength
-        self.entity.clock.add(self.on_tick)
+        self.clock.add(self.on_tick)
+        
+        # storage for computing the accelerations
+        self.forces = numpy.zeros((len(self.physics), 2))
+        
+        # storage for computing dot products
+        self.adot = numpy.zeros((len(self.physics), 2))
 
     def on_tick(self, event):
-        v = self.location - self.entity.location
-        d = numpy.sqrt(numpy.dot(v, v))
-        k = (v * self.strength) / (d * d * d)
-        self.entity.motion.a += k
+        if len(self.forces) != len(self.physics):
+            self.forces.resize((len(self.physics), 2))
+            self.adot.resize((len(self.physics), 2))
+
+        # The formula is
+        # a = d * K / r²
+        # where d is the direction, K is a constant and r is the distance
+        # In this case, it is
+        # a = v * K / (v²)**1.5 where v is the vector from self.location to the location
+        # of each entity and K is self.strength.
+        # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
+        self.forces[:] = self.location
+        self.forces -= self.physics.l
+        self.adot[:] = self.forces
+        numpy.square(self.adot, self.adot)
+        self.adot[:,0] += self.adot[:,1]
+        self.adot[:,1] = self.adot[:,0]
+        numpy.power(self.adot, 1.5, self.adot)
+        self.forces *= self.strength
+        self.forces /= self.adot
+        numpy.add(self.physics.f, self.forces, self.physics.f)
         return self.on_tick
 
 class location_clamper(object):
@@ -261,14 +442,19 @@ def collision_check(c1, s1, c2, s2):
 def main():
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
+    phy = physics()
     rects = [entity('Rect', clock,
-                    location=(300 + random.randint(0, 20), 100 + random.randint(0, 10)),
-                    motion=motion(velocity=(4 + random.random() * 2, -random.random() - 0.5)),
+                    physics=physics_properties(phy,
+                                               location=(300 + random.randint(0, 20),
+                                                         100 + random.randint(0, 10)),
+                                               velocity=(4 + random.random() * 2,
+                                                         -random.random() - 0.5)),
                     graphics=graphics(rand_colour() , (4, 4)))
-             for x in range(140)]
+             for _ in range(2)]
     player = entity('White Rect', clock, keyboard,
-                    location=(500, 100),
-                    motion=motion([0, 0], [0, 0]),
+                    physics=physics_properties(phy,
+                                               location=(500, 100),
+                                               velocity=(0, 0)),
                     graphics=graphics((227, 227, 227), (10, 10)))
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
@@ -278,20 +464,17 @@ def main():
     a2l = (600, 500)
     adist = 50
     astr = 4000
+    aphy = physics()
     attractor1_centre = entity('A1',
-                               location=a1l,
+                               physics=physics_properties(aphy, location=a1l),
                                graphics=graphics((128, 227, 80), (5, 5)))
     attractor2_centre = entity('A2',
-                               location=a2l,
+                               physics=physics_properties(aphy, location=a2l),
                                graphics=graphics((128, 80, 227), (5, 5)))
-    things = rects + [player]
-    for thing in things:
-        attractor(thing, a1l, astr)
-        attractor(thing, a2l, astr)
-        velocity_updater(thing)
-        location_updater(thing)
-        motion_cleaner(thing)
-    things.extend([attractor1_centre, attractor2_centre])
+    things = [attractor1_centre, attractor2_centre, player] + rects
+    attractor(clock, phy, a1l, astr)
+    attractor(clock, phy, a2l, astr)
+    update_physics_on_tick(phy, clock)
     frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((1000, 1000), DOUBLEBUF | OPENGL)
@@ -318,16 +501,16 @@ def main():
         colours = []
         glClear(GL_COLOR_BUFFER_BIT)
         for thing in things:
-            if thing.graphics is not None and thing.location is not None:
-                ul = thing.location - thing.graphics.size / 2
-                lr = thing.location + thing.graphics.size / 2
+            if thing.graphics is not None:
+                ul = thing.physics.location - thing.graphics.size / 2
+                lr = thing.physics.location + thing.graphics.size / 2
                 rects.extend((ul[0], ul[1],
                               ul[0], lr[1],
                               lr[0], lr[1],
                               lr[0], ul[1]))
                 colours.extend(thing.graphics.color * 4)
         glColor3f(1.0, 1.0, 1.0)
-        pyglet.graphics.draw(len(rects) / 2, GL_QUADS, ('v2f', rects), ('c3B', colours))
+        pyglet.graphics.draw(len(rects) // 2, GL_QUADS, ('v2f', rects), ('c3B', colours))
 
         pygame.display.flip()
 
