@@ -431,7 +431,7 @@ def main():
     things = [attractor1_centre, attractor2_centre, player] + rects
     attractor(clock, phy, a1l, astr)
     attractor(clock, phy, a2l, astr)
-    frame_time = 0.04
+    frame_time = 0.02
     pygame.init()
     screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
     glEnableClientState(GL_VERTEX_ARRAY)
@@ -445,12 +445,13 @@ def main():
     drawables_physics_indices = [things[i].physics.idx for i in drawables_indices]
     n_drawables = len(drawables_indices)
     colors = numpy.zeros((n_drawables, 4, 3), dtype=numpy.uint8)
-    i_color = 0
-    zzrect = numpy.array([-3, -3, -3, 3, 3, 3, 3, -3]).reshape(1, 4, 2)
+    vertices = numpy.zeros((n_drawables, 4, 2), dtype=numpy.float32)
     for it, i in zip(drawables_indices, range(len(drawables_indices))):
         colors[i] = things[it].graphics.color.reshape(1, 3)
-    vertex_list = pyglet.graphics.vertex_list(n_drawables * 4, ('v2f/stream', [0.0,] * (n_drawables * 8)),
+    vertex_list = pyglet.graphics.vertex_list(n_drawables * 4, 'v2f/stream',
                                                                ('c3B/static', colors.ravel()))
+    shapes = numpy.array([((things[i].graphics.size / 2).repeat(4) * [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
+                          for i in drawables_indices], dtype=numpy.float32)
     while True:
         start = time.clock()
 
@@ -464,8 +465,8 @@ def main():
                 keyboard.dispatch(event)
 
         glClear(GL_COLOR_BUFFER_BIT)
-        vertices = phy.locations.v[drawables_physics_indices].repeat(4, axis=0).reshape(-1, 4, 2)
-        vertices += zzrect
+        vertices[:] = phy.l[drawables_physics_indices].reshape(-1, 1 ,2)
+        vertices += shapes
         vertex_list.vertices = vertices.ravel()
         vertex_list.draw(GL_QUADS)
         pygame.display.flip()
