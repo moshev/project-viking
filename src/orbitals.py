@@ -264,7 +264,7 @@ class attractor(object):
         physics - the physics object containing all physics info on the entities.
         location - a sequence of 2 numbers - the coordinates of the centre of mass.
         strength - used in calculating attraction. The formula used is:
-            F = strength / distance ** 2 '''
+            F = strength / distance ** 2'''
 
         self.clock = clock
         self.physics = physics
@@ -390,6 +390,10 @@ class location_updater(object):
 def rand_colour():
     return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
+def rand_grey(lo, hi):
+    grey = random.randint(lo, hi)
+    return (grey, grey, grey)
+
 def collision_check(c1, s1, c2, s2):
     return not (c2[0] - s2[0] > c1[0] + s1[0] or
                 c2[0] + s2[0] < c1[0] - s1[0] or
@@ -405,8 +409,9 @@ def main():
                                                location=(180 + random.randint(0, 20),
                                                          60 + random.randint(0, 10)),
                                                velocity=(4 + random.random() * 2,
-                                                         -random.random() - 0.5)),
-                    graphics=graphics(rand_colour() , (4, 4)))
+                                                         -random.random() - 0.5),
+                                               mass = random.random() + 0.5),
+                    graphics=graphics(rand_colour() , (14, 14)))
              for _ in range(2000)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
@@ -428,7 +433,7 @@ def main():
     attractor2_centre = entity('A2',
                                physics=physics_properties(aphy, location=a2l),
                                graphics=graphics((128, 80, 227), (5, 5)))
-    things = [attractor1_centre, attractor2_centre, player] + rects
+    things = rects + [attractor1_centre, attractor2_centre, player]
     attractor(clock, phy, a1l, astr)
     attractor(clock, phy, a2l, astr)
     frame_time = 0.02
@@ -449,7 +454,7 @@ def main():
     for it, i in zip(drawables_indices, range(len(drawables_indices))):
         colors[i] = things[it].graphics.color.reshape(1, 3)
     vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
-                                                               ('c3B/static', colors.ravel()))
+                                              ('c3B/static', colors.ravel()))
     shapes = numpy.array([((things[i].graphics.size / 2).repeat(4) * [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                           for i in drawables_indices], dtype=numpy.float32)
     nframes = 0
@@ -490,8 +495,8 @@ def main():
         delta = time.clock() - start
         if delta < frame_time:
             time.sleep(frame_time - delta)
-        elif delta > frame_time + 0.01:
-            print("Overtime:", delta - frame_time)
+        elif delta > frame_time + 0.005:
+            print("Overtime (ms):", (delta - frame_time) * 1000)
 
 if __name__ == '__main__':
     main()
