@@ -22,7 +22,7 @@ class sparse_array(object):
         self.values = numpy.ones(self.shape, dtype)
         self.allocated = numpy.zeros(initial_capacity, numpy.bool)
         self.len = 0
-    
+
     def add(self, vector):
         '''Adds a vector to the array and returns its index in the sparse array.
         If there is no free space, the storage space is grown twice.'''
@@ -271,10 +271,10 @@ class attractor(object):
         self.location = numpy.array(location)
         self.strength = strength
         self.clock.add(self.on_tick)
-        
+
         # storage for computing the accelerations
         self.forces = numpy.zeros((len(self.physics.f), 2))
-        
+
         # storage for computing dot products
         self.adot = numpy.zeros((len(self.physics.f), 2))
 
@@ -407,7 +407,7 @@ def main():
                                                velocity=(4 + random.random() * 2,
                                                          -random.random() - 0.5)),
                     graphics=graphics(rand_colour() , (4, 4)))
-             for _ in range(4000)]
+             for _ in range(2000)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
                                                location=(300, 60),
@@ -443,15 +443,18 @@ def main():
     tick_event = pygame.event.Event(TICK)
     drawables_indices = [i for thing, i in zip(things, range(len(things))) if thing.graphics is not None]
     drawables_physics_indices = [things[i].physics.idx for i in drawables_indices]
-    n_drawables = len(drawables_indices)
-    colors = numpy.zeros((n_drawables, 4, 3), dtype=numpy.uint8)
-    vertices = numpy.zeros((n_drawables, 4, 2), dtype=numpy.float32)
+    ndrawables = len(drawables_indices)
+    colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
+    vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
     for it, i in zip(drawables_indices, range(len(drawables_indices))):
         colors[i] = things[it].graphics.color.reshape(1, 3)
-    vertex_list = pyglet.graphics.vertex_list(n_drawables * 4, 'v2f/stream',
+    vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
                                                                ('c3B/static', colors.ravel()))
     shapes = numpy.array([((things[i].graphics.size / 2).repeat(4) * [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                           for i in drawables_indices], dtype=numpy.float32)
+    nframes = 0
+    vertices_time = 0.0
+    draw_time = 0.0
     while True:
         start = time.clock()
 
@@ -460,16 +463,29 @@ def main():
 
         for event in pygame.event.get():
             if event.type == QUIT:
+                print('Average vertices copy time (ms):', vertices_time / nframes)
+                print('Average draw time (ms):', draw_time / nframes)
                 return 0
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        glClear(GL_COLOR_BUFFER_BIT)
         vertices[:] = phy.l[drawables_physics_indices].reshape(-1, 1 ,2)
         vertices += shapes
+
+        start_vertices = time.clock()
+
         vertex_list.vertices = vertices.ravel()
+
+        end_vertices_start_draw = time.clock()
+
+        glClear(GL_COLOR_BUFFER_BIT)
         vertex_list.draw(GL_QUADS)
         pygame.display.flip()
+
+        end_draw = time.clock()
+        nframes += 1
+        vertices_time += (end_vertices_start_draw - start_vertices) * 1000
+        draw_time += (end_draw - end_vertices_start_draw) * 1000
 
         delta = time.clock() - start
         if delta < frame_time:
