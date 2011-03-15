@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
 import time
+import ctypes
 import numpy
 import pygame
 from pygame.locals import *
@@ -12,6 +13,8 @@ from constants import *
 import components
 import random
 from util import arrayify
+
+NPARTICLES=5000
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
@@ -299,7 +302,8 @@ class attractor(object):
         numpy.power(self.adot, 1.5, self.adot)
         self.forces *= self.strength
         self.forces /= self.adot
-        numpy.add(self.physics.f, self.forces, self.physics.f)
+        result = self.physics.f
+        result += self.forces
         return self.on_tick
 
 class location_clamper(object):
@@ -411,8 +415,8 @@ def main():
                                                velocity=(4 + random.random() * 2,
                                                          -random.random() - 0.5),
                                                mass = random.random() + 0.5),
-                    graphics=graphics(rand_colour() , (14, 14)))
-             for _ in range(2000)]
+                    graphics=graphics(rand_colour() , (5, 5)))
+             for _ in range(NPARTICLES)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
                                                location=(300, 60),
@@ -455,8 +459,10 @@ def main():
         colors[i] = things[it].graphics.color.reshape(1, 3)
     vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
                                               ('c3B/static', colors.ravel()))
-    shapes = numpy.array([((things[i].graphics.size / 2).repeat(4) * [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
+    shapes = numpy.array([((things[i].graphics.size * things[i].physics.mass * 0.5).repeat(4) *
+                           [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                           for i in drawables_indices], dtype=numpy.float32)
+    verticestmp64 = numpy.zeros((len(drawables_physics_indices), 2), dtype=numpy.float64)
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
@@ -474,14 +480,15 @@ def main():
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        vertices[:] = phy.l[drawables_physics_indices].reshape(-1, 1 ,2)
-        vertices += shapes
-
         start_vertices = time.clock()
 
-        vertex_list.vertices = vertices.ravel()
+        numpy.take(phy.l, drawables_physics_indices, out=verticestmp64, axis=0)
+        vertices[:] = verticestmp64.reshape(-1, 1, 2)
+        vertices += shapes
 
         end_vertices_start_draw = time.clock()
+
+        ctypes.memmove(vertex_list.vertices, vertices.ctypes.data, vertices.nbytes)
 
         glClear(GL_COLOR_BUFFER_BIT)
         vertex_list.draw(GL_QUADS)
