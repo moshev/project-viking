@@ -403,9 +403,11 @@ def collision_check(c1, s1, c2, s2):
                 c2[1] + s2[1] < c1[1] - s1[1])
 
 def main():
+    print('Please wait patiently while the particles prepare for the show.')
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
     phy = physics()
+    print('Making suits.')
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
                                                location=(180 + random.randint(0, 20),
@@ -420,6 +422,7 @@ def main():
                                                location=(300, 60),
                                                velocity=(0, 0)),
                     graphics=graphics((227, 227, 227), (10, 10)))
+    print('Hooking up installations.')
     accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
     accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
     accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
@@ -438,6 +441,7 @@ def main():
     attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a1l, astr)
     attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a2l, astr)
     frame_time = 0.04
+    print('Turning the lights on')
     pygame.init()
     screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
     glEnableClientState(GL_VERTEX_ARRAY)
@@ -447,6 +451,7 @@ def main():
     glOrtho(0, 600, 600, 0, -1, 1)
     glMatrixMode(GL_MODELVIEW)
     tick_event = pygame.event.Event(TICK)
+    print('Moving to starting positions.')
     ndrawables = len(things)
     colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
     vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
@@ -457,6 +462,7 @@ def main():
     shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
                            [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                           for thing in things], dtype=numpy.float32)
+    print('Enjoy the show.')
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
