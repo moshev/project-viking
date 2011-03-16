@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
-import time
+from time import time, sleep
 import ctypes
 import numpy
 import pygame
@@ -14,7 +14,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES=5000
+NPARTICLES = 5000
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
@@ -437,10 +437,10 @@ def main():
     attractor2_centre = entity('A2',
                                physics=physics_properties(aphy, location=a2l),
                                graphics=graphics((128, 80, 227), (5, 5)))
-    things = rects + [attractor1_centre, attractor2_centre, player]
+    things = rects + [player]
     attractor(clock, phy, a1l, astr)
     attractor(clock, phy, a2l, astr)
-    frame_time = 0.02
+    frame_time = 0.04
     pygame.init()
     screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
     glEnableClientState(GL_VERTEX_ARRAY)
@@ -466,42 +466,45 @@ def main():
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
+    total_time = 0.0
     while True:
-        start = time.clock()
-
-        clock.dispatch(tick_event)
-        phy.tick()
-
         for event in pygame.event.get():
             if event.type == QUIT:
                 print('Average vertices copy time (ms):', vertices_time / nframes)
                 print('Average draw time (ms):', draw_time / nframes)
+                print('Average frame time (ms):', total_time / nframes)
                 return 0
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        start_vertices = time.clock()
+        start = time()
+
+        clock.dispatch(tick_event)
+        phy.tick()
+
+        start_vertices = time()
 
         numpy.take(phy.l, drawables_physics_indices, out=verticestmp64, axis=0)
         vertices[:] = verticestmp64.reshape(-1, 1, 2)
         vertices += shapes
 
-        end_vertices_start_draw = time.clock()
-
         ctypes.memmove(vertex_list.vertices, vertices.ctypes.data, vertices.nbytes)
+
+        end_vertices_start_draw = time()
 
         glClear(GL_COLOR_BUFFER_BIT)
         vertex_list.draw(GL_QUADS)
         pygame.display.flip()
 
-        end_draw = time.clock()
+        end_draw = time()
         nframes += 1
         vertices_time += (end_vertices_start_draw - start_vertices) * 1000
         draw_time += (end_draw - end_vertices_start_draw) * 1000
 
-        delta = time.clock() - start
+        delta = time() - start
+        total_time += delta * 1000
         if delta < frame_time:
-            time.sleep(frame_time - delta)
+            sleep(frame_time - delta)
         elif delta > frame_time + 0.005:
             print("Overtime (ms):", (delta - frame_time) * 1000)
 
