@@ -14,7 +14,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 5000
+NPARTICLES = 20000
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
@@ -30,24 +30,19 @@ class sparse_array(object):
         '''Adds a vector to the array and returns its index in the sparse array.
         If there is no free space, the storage space is grown twice.'''
 
-        candidate = numpy.argmin(self.allocated)
-        if self.allocated[candidate]:
+        if self.len == self.shape[0]:
             # allocate more space
             self.shape[0] *= 2
-            try:
-                self.values.resize(self.shape)
-            except ValueError:
-                print("fixme: Somebody has references to values of a sparse array.")
-                self.values.resize(self.shape, False)
-            try:
-                self.allocated.resize(self.shape[0])
-            except ValueError:
-                print("fixme: Somebody has references to bitmap of a sparse array.")
-                self.allocated.resize(self.shape, False)
-            # now the next index is free and allocated
-            candidate += 1
+            oldvalues, oldallocated = self.values, self.allocated
+            self.values = numpy.ones(self.shape, oldvalues.dtype)
+            self.allocated = numpy.zeros(self.shape[0], oldallocated.dtype)
+            self.values[:self.len] = oldvalues
+            self.allocated[:self.len] = oldallocated
+
+        candidate = numpy.argmin(self.allocated)
         self.values[candidate] = vector
         self.allocated[candidate] = True
+        assert candidate == self.len, "omgwtf"
         self.len += 1
         return candidate
 
@@ -83,10 +78,11 @@ class physics(object):
         self.masses = sparse_array((1,))
 
     def tick(self):
-        numpy.divide(self.forces.values, self.masses.values, self.forces.values)
-        numpy.add(self.velocities.values, self.forces.values, self.velocities.values)
-        self.forces.values[:] = 0
-        numpy.add(self.locations.values, self.velocities.values, self.locations.values)
+        l = len(self.forces)
+        self.forces.values[:l] /= self.masses.values[:l]
+        self.velocities.values[:l] += self.forces.values[:l]
+        self.forces.values[:l] = 0
+        self.locations.values[:l] += self.velocities.values[:l]
 
     def add(self, location, velocity, force, mass):
         '''Adds a new entity's properties and returns an index to them.
@@ -262,29 +258,31 @@ class repulsor(object):
 class attractor(object):
     ''' Attracts all entities with the given physics, according to the law of gravity.  '''
 
-    def __init__(self, clock, physics, location, strength):
+    def __init__(self, clock, locations, forces, location, strength):
         '''Initialise a new attractor.
-        physics - the physics object containing all physics info on the entities.
-        location - a sequence of 2 numbers - the coordinates of the centre of mass.
+        locations - numpy array containing coordinates of objects to attract.
+        forces - numpy array in which the resulting forces will be added.
+        location - a sequence of 2 numbers - the coordinates of the centre.
         strength - used in calculating attraction. The formula used is:
             F = strength / distance ** 2'''
 
         self.clock = clock
-        self.physics = physics
+        self.things_locations = locations
+        self.out_forces = forces
         self.location = numpy.array(location)
         self.strength = strength
         self.clock.add(self.on_tick)
 
         # storage for computing the accelerations
-        self.forces = numpy.zeros((len(self.physics.f), 2))
+        self.forces = numpy.zeros((len(self.out_forces), 2))
 
         # storage for computing dot products
-        self.adot = numpy.zeros((len(self.physics.f), 2))
+        self.adot = numpy.zeros((len(self.out_forces), 2))
 
     def on_tick(self, event):
-        if len(self.forces) != len(self.physics.f):
-            self.forces = numpy.zeros((len(self.physics.f), 2))
-            self.adot = numpy.zeros((len(self.physics.f), 2))
+        if len(self.forces) != len(self.out_forces):
+            self.forces = numpy.zeros((len(self.out_forces), 2))
+            self.adot = numpy.zeros((len(self.out_forces), 2))
 
         # The formula is
         # a = d * K / r²
@@ -294,16 +292,16 @@ class attractor(object):
         # of each entity and K is self.strength.
         # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
         self.forces[:] = self.location
-        self.forces -= self.physics.l
+        self.forces -= self.things_locations
         self.adot[:] = self.forces
         numpy.square(self.adot, self.adot)
         self.adot[:,0] += self.adot[:,1]
+        numpy.sqrt(self.adot[:,0], self.adot[:,1])
+        self.adot[:,0] *= self.adot[:,1]
         self.adot[:,1] = self.adot[:,0]
-        numpy.power(self.adot, 1.5, self.adot)
         self.forces *= self.strength
         self.forces /= self.adot
-        result = self.physics.f
-        result += self.forces
+        self.out_forces += self.forces
         return self.on_tick
 
 class location_clamper(object):
@@ -430,16 +428,15 @@ def main():
     a2l = (360, 300)
     adist = 50
     astr = 4000
-    aphy = physics()
     attractor1_centre = entity('A1',
-                               physics=physics_properties(aphy, location=a1l),
+                               physics=physics_properties(phy, location=a1l),
                                graphics=graphics((128, 227, 80), (5, 5)))
     attractor2_centre = entity('A2',
-                               physics=physics_properties(aphy, location=a2l),
+                               physics=physics_properties(phy, location=a2l),
                                graphics=graphics((128, 80, 227), (5, 5)))
-    things = rects + [player]
-    attractor(clock, phy, a1l, astr)
-    attractor(clock, phy, a2l, astr)
+    things = rects + [player, attractor1_centre, attractor2_centre]
+    attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a1l, astr)
+    attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a2l, astr)
     frame_time = 0.04
     pygame.init()
     screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
@@ -450,25 +447,24 @@ def main():
     glOrtho(0, 600, 600, 0, -1, 1)
     glMatrixMode(GL_MODELVIEW)
     tick_event = pygame.event.Event(TICK)
-    drawables_indices = [i for thing, i in zip(things, range(len(things))) if thing.graphics is not None]
-    drawables_physics_indices = [things[i].physics.idx for i in drawables_indices]
-    ndrawables = len(drawables_indices)
+    ndrawables = len(things)
     colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
     vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
-    for it, i in zip(drawables_indices, range(len(drawables_indices))):
-        colors[i] = things[it].graphics.color.reshape(1, 3)
+    for thing in things:
+        colors[thing.physics.idx] = thing.graphics.color.reshape(1, 3)
     vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
                                               ('c3B/static', colors.ravel()))
-    shapes = numpy.array([((things[i].graphics.size * things[i].physics.mass * 0.5).repeat(4) *
+    shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
                            [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
-                          for i in drawables_indices], dtype=numpy.float32)
-    verticestmp64 = numpy.zeros((len(drawables_physics_indices), 2), dtype=numpy.float64)
+                          for thing in things], dtype=numpy.float32)
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
     phy_time = 0.0
     total_time = 0.0
     while True:
+        start = time()
+
         for event in pygame.event.get():
             if event.type == QUIT:
                 print('Average physics time (ms):', phy_time / nframes)
@@ -479,15 +475,12 @@ def main():
             elif event.type == KEYDOWN or event.type == KEYUP:
                 keyboard.dispatch(event)
 
-        start = time()
-
         clock.dispatch(tick_event)
         phy.tick()
 
         start_vertices = time()
 
-        numpy.take(phy.l, drawables_physics_indices, out=verticestmp64, axis=0)
-        vertices[:] = verticestmp64.reshape(-1, 1, 2)
+        vertices[:] = phy.l[:ndrawables].reshape(-1, 1, 2)
         vertices += shapes
 
         ctypes.memmove(vertex_list.vertices, vertices.ctypes.data, vertices.nbytes)
