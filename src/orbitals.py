@@ -14,7 +14,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 20000
+NPARTICLES = 5000
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
