@@ -71,11 +71,11 @@ class physics(object):
     The intention is to accumulate all forces acting on each entity this frame
     and then call tick() to update the other values.'''
 
-    def __init__(self):
-        self.locations = sparse_array((2,))
-        self.velocities = sparse_array((2,))
-        self.forces = sparse_array((2,))
-        self.masses = sparse_array((1,))
+    def __init__(self, initial_capacity=16):
+        self.locations = sparse_array((2,), initial_capacity=initial_capacity)
+        self.velocities = sparse_array((2,), initial_capacity=initial_capacity)
+        self.forces = sparse_array((2,), initial_capacity=initial_capacity)
+        self.masses = sparse_array((1,), initial_capacity=initial_capacity)
 
     def tick(self):
         l = len(self.forces)
@@ -406,8 +406,8 @@ def main():
     print('Please wait patiently while the particles prepare for the show.')
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
-    phy = physics()
-    print('Making suits.')
+    phy = physics(NPARTICLES + 10)
+    print('Dressing up.')
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
                                                location=(180 + random.randint(0, 20),
@@ -441,6 +441,15 @@ def main():
     attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a1l, astr)
     attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a2l, astr)
     frame_time = 0.04
+    print('Moving to starting positions.')
+    ndrawables = len(things)
+    colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
+    vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
+    for thing in things:
+        colors[thing.physics.idx] = thing.graphics.color.reshape(1, 3)
+    shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
+                           [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
+                          for thing in things], dtype=numpy.float32)
     print('Turning the lights on')
     pygame.init()
     screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
@@ -450,24 +459,15 @@ def main():
     glMatrixMode(GL_PROJECTION)
     glOrtho(0, 600, 600, 0, -1, 1)
     glMatrixMode(GL_MODELVIEW)
-    tick_event = pygame.event.Event(TICK)
-    print('Moving to starting positions.')
-    ndrawables = len(things)
-    colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
-    vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
-    for thing in things:
-        colors[thing.physics.idx] = thing.graphics.color.reshape(1, 3)
     vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
                                               ('c3B/static', colors.ravel()))
-    shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
-                           [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
-                          for thing in things], dtype=numpy.float32)
-    print('Enjoy the show.')
+    tick_event = pygame.event.Event(TICK)
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
     phy_time = 0.0
     total_time = 0.0
+    print('Enjoy the show.')
     while True:
         start = time()
 
