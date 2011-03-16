@@ -508,6 +508,8 @@ def main():
         total_time += delta * 1000
         if delta < frame_time:
             sleep(frame_time - delta)
+        elif delta > frame_time + 0.005:
+            print("Overtime (ms):", (delta - frame_time) * 1000)
 
 if __name__ == '__main__':
     main()
