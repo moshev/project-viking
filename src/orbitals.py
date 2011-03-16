@@ -14,7 +14,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 5000
+NPARTICLES = 20000
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
@@ -466,10 +466,12 @@ def main():
     nframes = 0
     vertices_time = 0.0
     draw_time = 0.0
+    phy_time = 0.0
     total_time = 0.0
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
+                print('Average physics time (ms):', phy_time / nframes)
                 print('Average vertices copy time (ms):', vertices_time / nframes)
                 print('Average draw time (ms):', draw_time / nframes)
                 print('Average frame time (ms):', total_time / nframes)
@@ -497,16 +499,15 @@ def main():
         pygame.display.flip()
 
         end_draw = time()
+
+        delta = end_draw - start
         nframes += 1
+        phy_time += (start_vertices - start) * 1000
         vertices_time += (end_vertices_start_draw - start_vertices) * 1000
         draw_time += (end_draw - end_vertices_start_draw) * 1000
-
-        delta = time() - start
         total_time += delta * 1000
         if delta < frame_time:
             sleep(frame_time - delta)
-        elif delta > frame_time + 0.005:
-            print("Overtime (ms):", (delta - frame_time) * 1000)
 
 if __name__ == '__main__':
     main()
