@@ -402,12 +402,21 @@ def collision_check(c1, s1, c2, s2):
                 c2[1] - s2[1] > c1[1] + s1[1] or
                 c2[1] + s2[1] < c1[1] - s1[1])
 
+def make_progress_printer(step, limit):
+    limit //= step
+    def progress_print(n):
+        if n % step == 0:
+            print(n // step, 'of', limit)
+        return True
+    return progress_print
+
 def main():
     print('Please wait patiently while the particles prepare for the show.')
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
     phy = physics(NPARTICLES + 10)
     print('Dressing up.')
+    progress = make_progress_printer(1000, NPARTICLES)
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
                                                location=(180 + random.randint(0, 20),
@@ -416,7 +425,7 @@ def main():
                                                          -random.random() - 0.5),
                                                mass = random.random() + 0.5),
                     graphics=graphics(rand_colour() , (5, 5)))
-             for _ in range(NPARTICLES)]
+             for i in range(NPARTICLES) if progress(i)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
                                                location=(300, 60),
