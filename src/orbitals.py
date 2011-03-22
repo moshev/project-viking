@@ -419,13 +419,13 @@ def main():
     progress = make_progress_printer(1000, NPARTICLES)
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
-                                               location=(300 + random.randint(-10, 10),
-                                                         60 + random.randint(0, 10)),
-                                               velocity=((4 + random.random() * 2) * random.choice((-1, 1)),
-                                                         -random.random() - 0.5),
-                                               mass = random.random() + 0.5),
-                    graphics=graphics(rand_colour() , (5, 5)))
-             for i in range(NPARTICLES) if progress(i)]
+                                               location=(300 + random.randint(-2, 2),
+                                                         60 + random.randint(0, 5)),
+                                               velocity=((5 + random.random() * 0.02) * random.choice((-1, 1)),
+                                                         -random.random() * 0.01 - 2),
+                                               mass = random.random() * 0.01 + 0.9),
+                    graphics=graphics(rand_grey(220, 255) , (5, 5)))
+             for i in range(NPARTICLES) if progress(i + 1)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
                                                location=(300, 60),
