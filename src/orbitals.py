@@ -419,9 +419,9 @@ def main():
     progress = make_progress_printer(1000, NPARTICLES)
     rects = [entity('Rect', clock,
                     physics=physics_properties(phy,
-                                               location=(180 + random.randint(0, 20),
+                                               location=(300 + random.randint(-10, 10),
                                                          60 + random.randint(0, 10)),
-                                               velocity=(4 + random.random() * 2,
+                                               velocity=((4 + random.random() * 2) * random.choice((-1, 1)),
                                                          -random.random() - 0.5),
                                                mass = random.random() + 0.5),
                     graphics=graphics(rand_colour() , (5, 5)))
