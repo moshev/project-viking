@@ -14,7 +14,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 20000
+NPARTICLES = 200
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
@@ -459,8 +459,11 @@ def main():
                            [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                           for thing in things], dtype=numpy.float32)
     print('Turning the lights on')
-    pygame.init()
-    screen = pygame.display.set_mode((600, 600), DOUBLEBUF | OPENGL)
+    screen = pyglet.window.get_platform().get_default_display().get_default_screen()
+    config = screen.get_best_config(pyglet.gl.Config(buffer_size=24, double_buffer=True, stereo=False))
+    window = pyglet.window.Window(600, 600, 'Particle Vortex', vsync=False, config=config)
+    sleep(2)
+    return 0
     glEnableClientState(GL_VERTEX_ARRAY)
     glEnableClientState(GL_COLOR_ARRAY)
     glClearColor(0.0, 0.0, 0.0, 0.0)
