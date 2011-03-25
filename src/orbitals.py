@@ -410,116 +410,126 @@ def make_progress_printer(step, limit):
         return True
     return progress_print
 
-def main():
-    print('Please wait patiently while the particles prepare for the show.')
-    clock = events.dispatcher('Clock')
-    keyboard = events.dispatcher('Keyboard')
-    phy = physics(NPARTICLES + 10)
-    print('Dressing up.')
-    progress = make_progress_printer(1000, NPARTICLES)
-    rects = [entity('Rect', clock,
-                    physics=physics_properties(phy,
-                                               location=(300, 60),
-                                               velocity=((5 + random.random() * 0.02) * random.choice((-1, 1)),
-                                                         -random.random() * 0.01 - 2),
-                                               mass = random.random() * 0.01 + 0.9),
-                    graphics=graphics(rand_grey(220, 255) , (5, 5)))
-             for i in range(NPARTICLES) if progress(i + 1)]
-    player = entity('White Rect', clock, keyboard,
-                    physics=physics_properties(phy,
-                                               location=(300, 60),
-                                               velocity=(0, 0)),
-                    graphics=graphics((227, 227, 227), (10, 10)))
-    print('Hooking up installations.')
-    accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
-    accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
-    accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
-    accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
-    a1l = (240, 300)
-    a2l = (360, 300)
-    adist = 50
-    astr = 4000
-    attractor1_centre = entity('A1',
-                               physics=physics_properties(phy, location=a1l),
-                               graphics=graphics((128, 227, 80), (5, 5)))
-    attractor2_centre = entity('A2',
-                               physics=physics_properties(phy, location=a2l),
-                               graphics=graphics((128, 80, 227), (5, 5)))
-    things = rects + [player, attractor1_centre, attractor2_centre]
-    attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a1l, astr)
-    attractor(clock, phy.l[:player.physics.idx + 1], phy.f[:player.physics.idx + 1], a2l, astr)
-    frame_time = 0.04
-    print('Moving to starting positions.')
-    ndrawables = len(things)
-    colors = numpy.zeros((ndrawables, 4, 3), dtype=numpy.uint8)
-    vertices = numpy.zeros((ndrawables, 4, 2), dtype=numpy.float32)
-    for thing in things:
-        colors[thing.physics.idx] = thing.graphics.color.reshape(1, 3)
-    shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
-                           [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
-                          for thing in things], dtype=numpy.float32)
-    print('Turning the lights on')
-    screen = pyglet.window.get_platform().get_default_display().get_default_screen()
-    config = screen.get_best_config(pyglet.gl.Config(buffer_size=24, double_buffer=True, stereo=False))
-    window = pyglet.window.Window(600, 600, 'Particle Vortex', vsync=False, config=config)
-    sleep(2)
-    return 0
-    glEnableClientState(GL_VERTEX_ARRAY)
-    glEnableClientState(GL_COLOR_ARRAY)
-    glClearColor(0.0, 0.0, 0.0, 0.0)
-    glMatrixMode(GL_PROJECTION)
-    glOrtho(0, 600, 600, 0, -1, 1)
-    glMatrixMode(GL_MODELVIEW)
-    vertex_list = pyglet.graphics.vertex_list(ndrawables * 4, 'v2f/stream',
-                                              ('c3B/static', colors.ravel()))
-    tick_event = pygame.event.Event(TICK)
-    nframes = 0
-    vertices_time = 0.0
-    draw_time = 0.0
-    phy_time = 0.0
-    total_time = 0.0
-    print('Enjoy the show.')
-    while True:
+class MainWindow(pyglet.window.Window):
+    def __init__(self, *args, **kwargs):
+        clock = events.dispatcher('Clock')
+        keyboard = events.dispatcher('Keyboard')
+        self.phy = physics(NPARTICLES + 10)
+        print('Dressing up.')
+        progress = make_progress_printer(1000, NPARTICLES)
+        rects = [entity('Rect', clock,
+                        physics=physics_properties(self.phy,
+                                                   location=(300, 60),
+                                                   velocity=((5 + random.random() * 0.02) * random.choice((-1, 1)),
+                                                             -random.random() * 0.01 - 2),
+                                                   mass = random.random() * 0.01 + 0.9),
+                        graphics=graphics(rand_grey(220, 255) , (5, 5)))
+                 for i in range(NPARTICLES) if progress(i + 1)]
+        player = entity('White Rect', clock, keyboard,
+                        physics=physics_properties(self.phy,
+                                                   location=(300, 60),
+                                                   velocity=(0, 0)),
+                        graphics=graphics((227, 227, 227), (10, 10)))
+        print('Hooking up installations.')
+        accelerate_on_keypress(player, K_UP, (0, -0.25), frames=0)
+        accelerate_on_keypress(player, K_DOWN, (0, 0.25), frames=0)
+        accelerate_on_keypress(player, K_LEFT, (-0.25, 0), frames=0)
+        accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
+        a1l = (240, 300)
+        a2l = (360, 300)
+        adist = 50
+        astr = 4000
+        attractor1_centre = entity('A1',
+                                   physics=physics_properties(self.phy, location=a1l),
+                                   graphics=graphics((128, 227, 80), (5, 5)))
+        attractor2_centre = entity('A2',
+                                   physics=physics_properties(self.phy, location=a2l),
+                                   graphics=graphics((128, 80, 227), (5, 5)))
+        self.things = rects + [player, attractor1_centre, attractor2_centre]
+        attractor(clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a1l, astr)
+        attractor(clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a2l, astr)
+        self.frame_time = 0.04
+        print('Moving to starting positions.')
+        self.ndrawables = len(self.things)
+        colors = numpy.zeros((self.ndrawables, 4, 3), dtype=numpy.uint8)
+        self.vertices = numpy.zeros((self.ndrawables, 4, 2), dtype=numpy.float32)
+        for thing in self.things:
+            colors[thing.physics.idx] = thing.graphics.color.reshape(1, 3)
+        self.shapes = numpy.array([((thing.graphics.size * thing.physics.mass * 0.5).repeat(4) *
+                                    [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
+                                   for thing in self.things], dtype=numpy.float32)
+        print('Turning the lights on')
+        pyglet.window.Window.__init__(self, *args, **kwargs)
+        glEnableClientState(GL_VERTEX_ARRAY)
+        glEnableClientState(GL_COLOR_ARRAY)
+        glClearColor(0.0, 0.0, 0.0, 0.0)
+        glMatrixMode(GL_PROJECTION)
+        glOrtho(0, 600, 600, 0, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        self.vertex_list = pyglet.graphics.vertex_list(self.ndrawables * 4,
+                                                       'v2f/stream', ('c3B/static', colors.ravel()))
+        self.nframes = 0
+        self.vertices_time = 0.0
+        self.draw_time = 0.0
+        self.phy_time = 0.0
+        self.total_time = 0.0
+        self.start = time()
+        pyglet.clock.schedule_interval(self.physics, 0.04)
+        pyglet.clock.schedule_interval(self.redraw, 0.04)
+        print('Enjoy the show.')
+
+    def redraw(self, dt):
+        self.on_draw()
+        self.flip()
+
+    def physics(self, dt):
         start = time()
+        self.phy.tick()
+        self.phy_time += (time() - start) * 1000
 
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                print('Average physics time (ms):', phy_time / nframes)
-                print('Average vertices copy time (ms):', vertices_time / nframes)
-                print('Average draw time (ms):', draw_time / nframes)
-                print('Average frame time (ms):', total_time / nframes)
-                return 0
-            elif event.type == KEYDOWN or event.type == KEYUP:
-                keyboard.dispatch(event)
 
-        clock.dispatch(tick_event)
-        phy.tick()
+    def on_draw(self):
+        delta = time() - self.start
+        if delta < self.frame_time:
+            sleep(self.frame_time - delta)
+        elif delta > self.frame_time + 0.005:
+            print("Overtime (ms):", (delta - self.frame_time) * 1000)
 
-        start_vertices = time()
+        self.start = time()
 
-        vertices[:] = phy.l[:ndrawables].reshape(-1, 1, 2)
-        vertices += shapes
+        self.start_vertices = time()
 
-        ctypes.memmove(vertex_list.vertices, vertices.ctypes.data, vertices.nbytes)
+        self.vertices[:] = self.phy.l[:self.ndrawables].reshape(-1, 1, 2)
+        self.vertices += self.shapes
 
-        end_vertices_start_draw = time()
+        ctypes.memmove(self.vertex_list.vertices, self.vertices.ctypes.data, self.vertices.nbytes)
+
+        self.end_vertices_start_draw = time()
 
         glClear(GL_COLOR_BUFFER_BIT)
-        vertex_list.draw(GL_QUADS)
-        pygame.display.flip()
+        self.vertex_list.draw(GL_QUADS)
 
-        end_draw = time()
+        self.end_draw = time()
 
-        delta = end_draw - start
-        nframes += 1
-        phy_time += (start_vertices - start) * 1000
-        vertices_time += (end_vertices_start_draw - start_vertices) * 1000
-        draw_time += (end_draw - end_vertices_start_draw) * 1000
-        total_time += delta * 1000
-        if delta < frame_time:
-            sleep(frame_time - delta)
-        elif delta > frame_time + 0.005:
-            print("Overtime (ms):", (delta - frame_time) * 1000)
+        delta = self.end_draw - self.start
+        self.nframes += 1
+        self.vertices_time += (self.end_vertices_start_draw - self.start_vertices) * 1000
+        self.draw_time += (self.end_draw - self.end_vertices_start_draw) * 1000
+        self.total_time += delta * 1000
+
+    def on_close(self):
+        print('Average physics time (ms):', self.phy_time / self.nframes)
+        print('Average vertices copy time (ms):', self.vertices_time / self.nframes)
+        print('Average draw time (ms):', self.draw_time / self.nframes)
+        print('Average frame time (ms):', self.total_time / self.nframes)
+        pyglet.window.Window.on_close(self)
+
+def main():
+    print('Please wait patiently while the particles prepare for the show.')
+    screen = pyglet.window.get_platform().get_default_display().get_default_screen()
+    config = screen.get_best_config(pyglet.gl.Config(buffer_size=24, double_buffer=True, stereo=False))
+    window = MainWindow(600, 600, 'Particle Vortex', vsync=False, config=config)
+    pyglet.app.run()
 
 if __name__ == '__main__':
     main()
