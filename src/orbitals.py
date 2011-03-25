@@ -412,12 +412,13 @@ def make_progress_printer(step, limit):
 
 class MainWindow(pyglet.window.Window):
     def __init__(self, *args, **kwargs):
-        clock = events.dispatcher('Clock')
+        pyglet.window.Window.__init__(self, *args, **kwargs)
+        self.clock = events.dispatcher('Clock')
         keyboard = events.dispatcher('Keyboard')
         self.phy = physics(NPARTICLES + 10)
         print('Dressing up.')
         progress = make_progress_printer(1000, NPARTICLES)
-        rects = [entity('Rect', clock,
+        rects = [entity('Rect', self.clock,
                         physics=physics_properties(self.phy,
                                                    location=(300, 60),
                                                    velocity=((5 + random.random() * 0.02) * random.choice((-1, 1)),
@@ -425,7 +426,7 @@ class MainWindow(pyglet.window.Window):
                                                    mass = random.random() * 0.01 + 0.9),
                         graphics=graphics(rand_grey(220, 255) , (5, 5)))
                  for i in range(NPARTICLES) if progress(i + 1)]
-        player = entity('White Rect', clock, keyboard,
+        player = entity('White Rect', self.clock, keyboard,
                         physics=physics_properties(self.phy,
                                                    location=(300, 60),
                                                    velocity=(0, 0)),
@@ -446,8 +447,8 @@ class MainWindow(pyglet.window.Window):
                                    physics=physics_properties(self.phy, location=a2l),
                                    graphics=graphics((128, 80, 227), (5, 5)))
         self.things = rects + [player, attractor1_centre, attractor2_centre]
-        attractor(clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a1l, astr)
-        attractor(clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a2l, astr)
+        attractor(self.clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a1l, astr)
+        attractor(self.clock, self.phy.l[:player.physics.idx + 1], self.phy.f[:player.physics.idx + 1], a2l, astr)
         self.frame_time = 0.04
         print('Moving to starting positions.')
         self.ndrawables = len(self.things)
@@ -459,7 +460,6 @@ class MainWindow(pyglet.window.Window):
                                     [-1, -1, -1, 1, 1, 1, 1, -1]).reshape(4, 2)
                                    for thing in self.things], dtype=numpy.float32)
         print('Turning the lights on')
-        pyglet.window.Window.__init__(self, *args, **kwargs)
         glEnableClientState(GL_VERTEX_ARRAY)
         glEnableClientState(GL_COLOR_ARRAY)
         glClearColor(0.0, 0.0, 0.0, 0.0)
@@ -474,19 +474,18 @@ class MainWindow(pyglet.window.Window):
         self.phy_time = 0.0
         self.total_time = 0.0
         self.start = time()
-        pyglet.clock.schedule_interval(self.physics, 0.04)
         pyglet.clock.schedule_interval(self.redraw, 0.04)
         print('Enjoy the show.')
 
     def redraw(self, dt):
+        start = time()
+        self.clock.dispatch(None)
+        self.phy.tick()
+        self.vertices[:] = self.phy.l[:self.ndrawables].reshape(-1, 1, 2)
+        self.vertices += self.shapes
+        self.phy_time += (time() - start) * 1000
         self.on_draw()
         self.flip()
-
-    def physics(self, dt):
-        start = time()
-        self.phy.tick()
-        self.phy_time += (time() - start) * 1000
-
 
     def on_draw(self):
         delta = time() - self.start
@@ -498,9 +497,6 @@ class MainWindow(pyglet.window.Window):
         self.start = time()
 
         self.start_vertices = time()
-
-        self.vertices[:] = self.phy.l[:self.ndrawables].reshape(-1, 1, 2)
-        self.vertices += self.shapes
 
         ctypes.memmove(self.vertex_list.vertices, self.vertices.ctypes.data, self.vertices.nbytes)
 
@@ -518,6 +514,7 @@ class MainWindow(pyglet.window.Window):
         self.total_time += delta * 1000
 
     def on_close(self):
+        pyglet.clock.unschedule(self.redraw)
         print('Average physics time (ms):', self.phy_time / self.nframes)
         print('Average vertices copy time (ms):', self.vertices_time / self.nframes)
         print('Average draw time (ms):', self.draw_time / self.nframes)
