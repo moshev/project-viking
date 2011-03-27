@@ -514,7 +514,7 @@ def main():
         draw_time += (end_draw - end_vertices_start_draw) * 1000
         total_time += delta * 1000
         if delta < frame_time:
-            sleep(frame_time - delta)
+            pass
         elif delta > frame_time + 0.005:
             print("Overtime (ms):", (delta - frame_time) * 1000)
 
