@@ -79,10 +79,14 @@ class physics(object):
 
     def tick(self):
         l = len(self.forces)
-        self.forces.values[:l] /= self.masses.values[:l]
-        self.velocities.values[:l] += self.forces.values[:l]
-        self.forces.values[:l] = 0
-        self.locations.values[:l] += self.velocities.values[:l]
+        p = self.locations.values[:l]
+        v = self.velocities.values[:l]
+        f = self.forces.values[:l]
+        m = self.masses.values[:l]
+        f /= m
+        v += f
+        f[:] = 0
+        p += v
 
     def add(self, location, velocity, force, mass):
         '''Adds a new entity's properties and returns an index to them.
@@ -422,12 +426,12 @@ def main():
                                                location=(300, 60),
                                                velocity=((5 + random.random() * 0.02) * random.choice((-1, 1)),
                                                          -random.random() * 0.01 - 2),
-                                               mass = random.random() * 0.015 + 1.0),
-                    graphics=graphics(rand_grey(220, 255) , (2, 2)))
+                                               mass = random.random() * 0.01 + 0.9),
+                    graphics=graphics(rand_colour() , (2, 2)))
              for i in range(NPARTICLES) if progress(i + 1)]
     player = entity('White Rect', clock, keyboard,
                     physics=physics_properties(phy,
-                                               location=(300, 0),
+                                               location=(300, 60),
                                                velocity=(0, 0)),
                     graphics=graphics((227, 227, 227), (10, 10)))
     print('Hooking up installations.')
@@ -437,8 +441,8 @@ def main():
     accelerate_on_keypress(player, K_RIGHT, (0.25, 0), frames=0)
     a1l = (240, 300)
     a2l = (360, 300)
-    adist = 1
-    astr = 5500
+    adist = 50
+    astr = 4000
     attractor1_centre = entity('A1',
                                physics=physics_properties(phy, location=a1l),
                                graphics=graphics((128, 227, 80), (5, 5)))
