@@ -83,7 +83,6 @@ class physics(object):
         if event.type != TICK: return self.on_tick
         # Reset acceleration to 0 and velocity to the difference between the last two frames.
         self.entity.motion.a[:] = 0
-        self.entity.motion.v[:] = self.entity.location - self.last_position
         self.last_position[:] = self.entity.location
         for priority in self.modifiers.iterkeys():
             for modifier in self.modifiers[priority]:
