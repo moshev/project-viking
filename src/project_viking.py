@@ -59,15 +59,13 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     jump_frames_left = list(iterate_with_delays(jump_frames_left, jump_delays))
 
     player = components.entity('Player', clock, keyboard,
-                               location=(0, 0),
+                               location=(100, 0),
                                motion=components.motion(),
                                hitbox_passive=idle_right['hbp'],
                                hitbox_active=idle_right['hba'],
                                graphics=components.graphics(idle_right['sprite'], idle_right['sp']))
     physics.regular_physics(player)
-    player.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
-    player.physics.add(wall, components.physics.GROUP_LOCATION)
-    player.physics.add(physics.apply_friction(3), components.physics.GROUP_VELOCITY)
+    player.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
     player.physics.add(physics.speed_limiter((10, 10000)), components.physics.GROUP_VELOCITY)
 
     # movement left/right
@@ -106,7 +104,7 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
 
     idle_right_state.start()
     # jumping
-    controls.jump_when_key_pressed(player, key_jump, (0, -3.0), 12)
+    controls.jump_when_key_pressed(player, key_jump, (0, -G - 1.6), 12)
     return player
 
 def create_sheep(datadir, clock):
@@ -117,8 +115,6 @@ def create_sheep(datadir, clock):
                               hitpoints=2)
     sheep.set_frame(sheep_frame)
     physics.regular_physics(sheep)
-    sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
-    sheep.physics.add(wall, components.physics.GROUP_LOCATION)
     sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
     return sheep
 
@@ -130,8 +126,6 @@ def create_floaty_sheep(datadir, clock):
                               hitpoints=2)
     sheep.set_frame(sheep_frame)
     components.physics(sheep)
-    sheep.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
-    sheep.physics.add(wall, components.physics.GROUP_LOCATION)
     sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
     return sheep
 
@@ -143,14 +137,12 @@ def create_drake(datadir, clock):
                               hitpoints=200)
     drake.set_frame(drake_frame)
     physics.regular_physics(drake)
-    drake.physics.add(physics.ground_limiter(550), components.physics.GROUP_LOCATION)
-    drake.physics.add(wall, components.physics.GROUP_LOCATION)
     drake.physics.add(physics.apply_friction(5), components.physics.GROUP_VELOCITY)
     return drake
 
 def collision_check(l1, s1, l2, s2):
     r1, r2 = (l1 + s1), (l2 + s2)
-    return not ( l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l1[1])
+    return not (l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l1[1])
 
 def smooth_clamp_to(v, s):
     if v[0] == 0:
@@ -189,7 +181,7 @@ def passive_passive_collisions(things):
     locations = numpy.array([thing.location for thing in things])
     toplefts += locations
     bottomrights += locations
-    halfnegcheck = numpy.any(toplefts[numpy.newaxis,:,:] > bottomrights[:,numpy.newaxis,:], axis=2)
+    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] >= bottomrights[:, numpy.newaxis, :], axis=2)
     return numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
 
 def active_passive_collisions(things):
@@ -218,12 +210,34 @@ def active_passive_collisions(things):
     toplefts_active = toplefts_active.reshape(-1, 1, 2)
     bottomrights_active = bottomrights_active.reshape(-1, 1, 2)
 
-    negcheck = numpy.logical_or(numpy.any(toplefts_active > bottomrights_passive, axis=2),
-                                numpy.any(bottomrights_active < toplefts_passive, axis=2))
+    negcheck = numpy.logical_or(numpy.any(toplefts_active >= bottomrights_passive, axis=2),
+                                numpy.any(bottomrights_active <= toplefts_passive, axis=2))
 
     legible = numpy.all(numpy.greater([thing.hitbox_active.size for thing in things], 0), axis=1).reshape(-1, 1)
 
     return numpy.logical_and(numpy.logical_not(negcheck), legible)
+
+def passive_walls_collisions(things, walls):
+    '''
+    Returns a NxM array where element at [i, j] says if
+    thing i collides with wall j with respect to its passive hitbox.
+    '''
+    toplefts_things = numpy.array([thing.hitbox_passive.point for thing in things])
+    bottomrights_things = toplefts_things + [thing.hitbox_passive.size for thing in things]
+    locations_things = numpy.array([thing.location for thing in things])
+    toplefts_things += locations_things
+    bottomrights_things += locations_things
+    toplefts_things = toplefts_things.reshape(-1, 1, 2)
+    bottomrights_things = bottomrights_things.reshape(-1, 1, 2);
+
+    toplefts_walls = numpy.array([wall.point for wall in walls])
+    bottomrights_walls = toplefts_walls + [wall.size for wall in walls]
+    toplefts_walls = toplefts_walls.reshape(1, -1, 2)
+    bottomrights_walls = bottomrights_walls.reshape(1, -1, 2);
+
+    not_colliding = numpy.logical_or(numpy.any(toplefts_things >= bottomrights_walls, axis=2),
+                                     numpy.any(bottomrights_things <= toplefts_walls, axis=2))
+    return numpy.logical_not(not_colliding)
 
 def main():
     clock = events.dispatcher('Clock')
@@ -240,6 +254,9 @@ def main():
     entities = [player1, player2]
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
     background = pygame.image.load(os.path.join(datadir, 'background.png')).convert()
+    walls = [components.hitbox((-5, -5), (5, 610)),
+             components.hitbox((1000, -5), (5, 610)),
+             components.hitbox((-5, 600), (1010, 5)),]
 
     debug_draw = False
     while True:
@@ -269,8 +286,11 @@ def main():
             if apcollisions[i1, i2]:
                 entities[i2].hitpoints -= 1
 
+
         ppcollisions = passive_passive_collisions(entities)
+        pwcollisions = passive_walls_collisions(entities, walls);
         move = numpy.zeros((len(entities), 2))
+        dv = numpy.zeros((len(entities), 2))
         for (thing1, thing2), (i1, i2) in zip(itertools.product(entities, entities),
                                               itertools.product(range(len(entities)), range(len(entities)))):
             if i1 >= i2:
@@ -286,9 +306,30 @@ def main():
                 d1 = smooth_clamp_to(d, s1)
                 d2 = smooth_clamp_to(d, s2)
                 k = (d1 + d2 - d) / 2
+                k[numpy.argmin(numpy.abs(k))] = 0
                 move[i1] -= k
                 move[i2] += k
+                # Perfect elastic collision when both particles have mass = 1
+                thing1.motion.v, thing2.motion.v = thing2.motion.v, thing1.motion.v
 
+        for thing, wallcollisions, i in zip (entities, pwcollisions, xrange(len(entities))):
+            if wallcollisions[0]:
+                move[i, 0] -= thing.location[0] + thing.hitbox_passive.point[0]
+                thing.motion.v[0] = 0
+
+            if wallcollisions[1]:
+                move[i, 0] -= thing.location[0] + thing.hitbox_passive.point[0] + thing.hitbox_passive.size[0] - 1000
+                thing.motion.v[0] = 0
+
+            if wallcollisions[2]:
+                thing.tags.add('grounded')
+                move[i, 1] -= thing.location[1] + thing.hitbox_passive.point[1] + thing.hitbox_passive.size[1] - 600
+                thing.motion.v[1] = 0
+            else:
+                thing.tags.discard('grounded')
+
+        ncollisions = numpy.sum(ppcollisions, axis=1) + numpy.sum(pwcollisions, axis=1)
+        ncollisions[ncollisions == 0] = 1
         for thing, vector in zip(entities, move):
             thing.location += vector
 
