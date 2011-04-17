@@ -296,21 +296,46 @@ def main():
             if i1 >= i2:
                 continue
             if ppcollisions[i1, i2]:
-                p1 = thing1.hitbox_passive.point + thing1.location
-                p2 = thing2.hitbox_passive.point + thing2.location
-                s1 = thing1.hitbox_passive.size / 2
-                s2 = thing2.hitbox_passive.size / 2
-                c1 = p1 + s1
-                c2 = p2 + s2
-                d = c2 - c1
-                d1 = smooth_clamp_to(d, s1)
-                d2 = smooth_clamp_to(d, s2)
-                k = (d1 + d2 - d) / 2
-                k[numpy.argmin(numpy.abs(k))] = 0
-                move[i1] -= k
-                move[i2] += k
+                # x0, y0 -----+
+                #    |        | <- passive hitbox of thing 1
+                #    |        |
+                #    +-----x1, y1
+                #
+                # => [[x0, x1],
+                #     [y0, y1]]
+                rect1 = (thing1.hitbox_passive.point + thing1.location).reshape(-1, 1).repeat(2, 1)
+                rect1[:,1] += thing1.hitbox_passive.size
+
+                # x0, y0 -----+
+                #    |        | <- passive hitbox of thing 2
+                #    |        |
+                #    +-----x1, y1
+                #
+                # => [[x1, x0],
+                #     [y1, y0]]
+                # 
+                # note: reversed wrt the above.
+                rect2 = (thing2.hitbox_passive.point + thing2.location).reshape(-1, 1).repeat(2, 1)
+                rect2[:,0] += thing2.hitbox_passive.size
+
+                # diff[0, 0] - how much to move the two hitboxes vertically
+                #              such that box1 is above box2.
+                # diff[0, 1] - how much to move the two hitboxes vertically
+                #              such that box2 is above box1.
+                # and so on for diff[1, *] - (1 2, then 2 1)
+                diff = rect2 - rect1
+
+                # And the movement is the shortest alternative
+                side = numpy.argmin(numpy.abs(diff.flat))
+                diff = diff.flat[side] * 0.5
+                side = side // 2
+
+                move[i1, side] += diff
+                move[i2, side] -= diff
+
                 # Perfect elastic collision when both particles have mass = 1
-                thing1.motion.v, thing2.motion.v = thing2.motion.v, thing1.motion.v
+                v1, v2 = thing1.motion.v, thing2.motion.v
+                v1[side], v2[side] = v2[side], v1[side]
 
         for thing, wallcollisions, i in zip (entities, pwcollisions, xrange(len(entities))):
             if wallcollisions[0]:
@@ -328,8 +353,6 @@ def main():
             else:
                 thing.tags.discard('grounded')
 
-        ncollisions = numpy.sum(ppcollisions, axis=1) + numpy.sum(pwcollisions, axis=1)
-        ncollisions[ncollisions == 0] = 1
         for thing, vector in zip(entities, move):
             thing.location += vector
 
