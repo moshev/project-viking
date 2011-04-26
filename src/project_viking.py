@@ -182,7 +182,11 @@ def passive_passive_collisions(things):
     toplefts += locations
     bottomrights += locations
     halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] >= bottomrights[:, numpy.newaxis, :], axis=2)
-    return numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
+    result = numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
+
+    # Remove self collisions
+    result[numpy.diag_indices_from(result)] = False
+    return result
 
 def active_passive_collisions(things):
     '''
@@ -215,7 +219,12 @@ def active_passive_collisions(things):
 
     legible = numpy.all(numpy.greater([thing.hitbox_active.size for thing in things], 0), axis=1).reshape(-1, 1)
 
-    return numpy.logical_and(numpy.logical_not(negcheck), legible)
+    result = numpy.logical_and(numpy.logical_not(negcheck), legible)
+
+    # Remove self collisions
+    result[numpy.diag_indices_from(result)] = False
+    return result
+
 
 def passive_walls_collisions(things, walls):
     '''
@@ -237,6 +246,7 @@ def passive_walls_collisions(things, walls):
 
     not_colliding = numpy.logical_or(numpy.any(toplefts_things >= bottomrights_walls, axis=2),
                                      numpy.any(bottomrights_things <= toplefts_walls, axis=2))
+
     return numpy.logical_not(not_colliding)
 
 def main():
