@@ -14,6 +14,7 @@ class Main(QtGui.QMainWindow):
     MODEKEY = {'Q': MODE_SPRITE,
                'A': MODE_ACTIVE,
                'P': MODE_PASSIVE}
+    MODENAME = ['Sprite', 'Active hitbox', 'Passive hitbox']
 
     move = [(lambda hitbox_editor, delta: hitbox_editor.sp.__iadd__(QPoint(*delta))),
             (lambda hitbox_editor, delta: hitbox_editor.hba.translate(*delta)),
@@ -62,6 +63,7 @@ class Main(QtGui.QMainWindow):
             delta = [0, 0, 0, 0]
 
             # Largen
+            # top and left get -1, width and height get +1
             delta[idx] = -1 if idx < 2 else 1
 
             action_sizen = QAction(self)
@@ -72,6 +74,7 @@ class Main(QtGui.QMainWindow):
             self.addAction(action_sizen)
 
             # Smallen
+            # width and height get -1, top and left get +1
             delta[(idx + 2) % 4] = delta[idx]
             delta[idx] = 0
             key = 'Shift+' + key
@@ -111,6 +114,15 @@ class Main(QtGui.QMainWindow):
             self.ui.hitbox_editor.update()
 
         return handler
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        self._mode = value
+        self.statusBar().showMessage('Mode: ' + Main.MODENAME[self._mode])
 
 def main():
     app = QtGui.QApplication(sys.argv)
