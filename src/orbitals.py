@@ -3,6 +3,8 @@ from __future__ import print_function, absolute_import, division
 from time import time, sleep
 import ctypes
 import numpy
+import scipy
+from scipy import weave
 import pygame
 from pygame.locals import *
 import pyglet
@@ -274,7 +276,7 @@ class attractor(object):
         self.clock = clock
         self.things_locations = locations
         self.out_forces = forces
-        self.location = numpy.array(location)
+        self.location = numpy.array(location, dtype=float)
         self.strength = strength
         self.clock.add(self.on_tick)
 
@@ -296,17 +298,26 @@ class attractor(object):
         # a = v * K / (v²)**1.5 where v is the vector from self.location to the location
         # of each entity and K is self.strength.
         # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
-        self.forces[:] = self.location
-        self.forces -= self.things_locations
-        self.adot[:] = self.forces
-        numpy.square(self.adot, self.adot)
-        self.adot[:,0] += self.adot[:,1]
-        numpy.sqrt(self.adot[:,0], self.adot[:,1])
-        self.adot[:,0] *= self.adot[:,1]
-        self.adot[:,1] = self.adot[:,0]
-        self.forces *= self.strength
-        self.forces /= self.adot
-        self.out_forces += self.forces
+        code = """
+            double fx, fy, dot;
+            double *pc, *po, *pl;
+            pc = centre;
+            po = out;
+            pl = locations;
+            for (int i = 0; i < len; ++i, pl += 2, po += 2) {
+                fx = pc[0] - pl[0];
+                fy = pc[1] - pl[1];
+                dot = fx * fx + fy * fy;
+                dot *= sqrt(dot);
+                po[0] += (fx * strength) / dot;
+                po[1] += (fy * strength) / dot;
+            }
+        """
+
+        weave.inline(code, ['out', 'len', 'centre', 'locations', 'strength'],
+                     {'len': len(self.forces), 'locations': self.things_locations,
+                      'out': self.out_forces, 'centre': self.location, 'strength': self.strength},
+                     extra_compile_args=['-march=native'])
         return self.on_tick
 
 class location_clamper(object):
