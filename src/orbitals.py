@@ -24,7 +24,6 @@ class sparse_array(object):
         if initial_capacity <= 0:
             raise ValueError('Initial capacity must be positive')
         self.shape=[initial_capacity] + list(shape)
-        self.size = 0
         self.values = numpy.ones(self.shape, dtype)
         self.allocated = numpy.zeros(initial_capacity, numpy.bool)
         self.len = 0
@@ -42,10 +41,12 @@ class sparse_array(object):
             self.values[:self.len] = oldvalues
             self.allocated[:self.len] = oldallocated
 
-        candidate = numpy.argmin(self.allocated)
+        candidate = self.len
+        if self.allocated[candidate]:
+            candidate = numpy.argmin(self.allocated)
+
         self.values[candidate] = vector
         self.allocated[candidate] = True
-        assert candidate == self.len, "omgwtf"
         self.len += 1
         return candidate
 
