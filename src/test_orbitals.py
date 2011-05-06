@@ -20,5 +20,5 @@ class TestArrayStore(unittest.TestCase):
         self.assertEqual(0.0, arr[1])
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.hitboxeditor_main()
 

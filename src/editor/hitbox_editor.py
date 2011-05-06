@@ -5,13 +5,13 @@ import sys
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import QPoint, QString
 from PyQt4.QtGui import QFileDialog, QAction, QApplication
-from editor_main import Ui_mainWindow
+from hitbox_editor_mainwindow import Ui_MainWindow
 
 class Main(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
 
-        self.ui = Ui_mainWindow()
+        self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.action_Save.triggered.connect(self.ui.hitbox_editor.save)
 
@@ -35,12 +35,8 @@ class Main(QtGui.QMainWindow):
             self.ui.hitbox_editor.update()
         return handler
 
-def main():
+def hitboxeditor_main():
     app = QtGui.QApplication(sys.argv)
     window = Main()
     window.show()
     sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
-

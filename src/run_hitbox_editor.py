@@ -1,3 +1,2 @@
 import editor
-editor.main()
-
+editor.hitboxeditor_main()

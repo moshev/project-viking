@@ -1,2 +1,4 @@
-from editor import main
+from hitbox_editor import hitboxeditor_main
+from level_editor import leveleditor_main
+
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'editor_main.ui'
+# Form implementation generated from reading ui file 'hitbox_editor_mainwindow.ui'
 #
-# Created: Fri Apr 29 08:21:41 2011
+# Created: Fri May 06 15:53:55 2011
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -14,7 +14,7 @@ try:
 except AttributeError:
     _fromUtf8 = lambda s: s
 
-class Ui_mainWindow(object):
+class Ui_MainWindow(object):
     def setupUi(self, mainWindow):
         mainWindow.setObjectName(_fromUtf8("mainWindow"))
         mainWindow.resize(800, 600)

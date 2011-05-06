@@ -1,3 +1,3 @@
 import editor
-editor.main()
+editor.leveleditor_main()
 

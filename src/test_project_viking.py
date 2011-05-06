@@ -17,5 +17,5 @@ class TestClamp(unittest.TestCase):
             self.assertLessEqual(c38, 8)
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.hitboxeditor_main()
 
