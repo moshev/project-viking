@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="LevelEditorWidget" name="graphicsView">
+     <widget class="QGraphicsView" name="graphicsView">
       <property name="dragMode">
        <enum>QGraphicsView::RubberBandDrag</enum>
       </property>
@@ -30,7 +30,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -59,7 +59,7 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
    <addaction name="actionNew_Rect"/>
    <addaction name="actionDelete_Rects"/>
@@ -107,13 +107,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>LevelEditorWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>level_editor_widget.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

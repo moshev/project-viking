@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'level_editor_mainwindow.ui'
 #
-# Created: Fri May 06 18:00:52 2011
+# Created: Sat May  7 12:42:00 2011
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -22,13 +22,13 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.horizontalLayout = QtGui.QHBoxLayout(self.centralwidget)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.graphicsView = LevelEditorWidget(self.centralwidget)
+        self.graphicsView = QtGui.QGraphicsView(self.centralwidget)
         self.graphicsView.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
         self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
         self.horizontalLayout.addWidget(self.graphicsView)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 24))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menu_File = QtGui.QMenu(self.menubar)
         self.menu_File.setObjectName(_fromUtf8("menu_File"))
@@ -41,7 +41,6 @@ class Ui_MainWindow(object):
         self.toolBar = QtGui.QToolBar(MainWindow)
         self.toolBar.setObjectName(_fromUtf8("toolBar"))
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
-        MainWindow.insertToolBarBreak(self.toolBar)
         self.action_Open = QtGui.QAction(MainWindow)
         self.action_Open.setObjectName(_fromUtf8("action_Open"))
         self.actionC_ut = QtGui.QAction(MainWindow)
@@ -82,4 +81,3 @@ class Ui_MainWindow(object):
         self.actionDelete_Rects.setToolTip(QtGui.QApplication.translate("MainWindow", "Delete currently selected rectangle(s)", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDelete_Rects.setShortcut(QtGui.QApplication.translate("MainWindow", "Del", None, QtGui.QApplication.UnicodeUTF8))
 
-from level_editor_widget import LevelEditorWidget
