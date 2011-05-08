@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\projects\project-viking\src\editor\level_editor_mainwindow.ui'
+# Form implementation generated from reading ui file 'level_editor_mainwindow.ui'
 #
-# Created: Sat May 07 20:01:56 2011
-#      by: PyQt4 UI code generator 4.8.4
+# Created: Sun May 08 10:11:39 2011
+#      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -55,6 +55,9 @@ class Ui_MainWindow(object):
         self.actionDelete_Rects.setObjectName(_fromUtf8("actionDelete_Rects"))
         self.action_Save = QtGui.QAction(MainWindow)
         self.action_Save.setObjectName(_fromUtf8("action_Save"))
+        self.action_New = QtGui.QAction(MainWindow)
+        self.action_New.setObjectName(_fromUtf8("action_New"))
+        self.menu_File.addAction(self.action_New)
         self.menu_File.addAction(self.action_Open)
         self.menu_File.addAction(self.action_Save)
         self.menu_Edit.addAction(self.actionC_ut)
@@ -86,4 +89,5 @@ class Ui_MainWindow(object):
         self.actionDelete_Rects.setShortcut(QtGui.QApplication.translate("MainWindow", "Del", None, QtGui.QApplication.UnicodeUTF8))
         self.action_Save.setText(QtGui.QApplication.translate("MainWindow", "&Save", None, QtGui.QApplication.UnicodeUTF8))
         self.action_Save.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+S", None, QtGui.QApplication.UnicodeUTF8))
+        self.action_New.setText(QtGui.QApplication.translate("MainWindow", "&New", None, QtGui.QApplication.UnicodeUTF8))
 
