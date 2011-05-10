@@ -16,7 +16,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 100000
+NPARTICLES = 1000
 PRINTOVERTIME = False
 
 class sparse_array(object):
@@ -300,25 +300,26 @@ class attractor(object):
         # of each entity and K is self.strength.
         # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
         code = """
-            double fx, fy, dot;
-            double *pc, *po, *pl;
-            pc = centre;
-            po = out;
-            pl = locations;
-            for (int i = 0; i < len; ++i, pl += 2, po += 2) {
-                fx = pc[0] - pl[0];
-                fy = pc[1] - pl[1];
-                dot = fx * fx + fy * fy;
+            typedef double v2df __attribute__((vector_size(128)));
+            v2df force;
+            double dot;
+            v2df *pc, *po, *pl;
+            pc = (v2df*)centre;
+            po = (v2df*)out;
+            pl = (v2df*)locations;
+            for (int i = 0; i < len; ++i, ++pl, ++po) {
+                force = *pc - *pl;
+                v2df force2 = force * force;
+                dot = force2[0] + force2[1];
                 dot *= sqrt(dot);
-                po[0] += (fx * strength) / dot;
-                po[1] += (fy * strength) / dot;
+                *po += (force * strength) / dot;
             }
         """
 
         weave.inline(code, ['out', 'len', 'centre', 'locations', 'strength'],
                      {'len': len(self.forces), 'locations': self.things_locations,
                       'out': self.out_forces, 'centre': self.location, 'strength': self.strength},
-                     extra_compile_args=['-march=native'])
+                     extra_compile_args=['-march=native', '-msse', '-msse2'])
         return self.on_tick
 
 class location_clamper(object):
