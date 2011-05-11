@@ -16,7 +16,7 @@ from util import *
 
 def iterate_with_delays(frames, delays):
     '''
-    Frames is a list of tuples (image, 
+    Frames is a list of tuples (image,
     frame_times is a list of numbers - how many ticks to wait before returning the given frame.
     '''
     tick = 0
@@ -47,13 +47,13 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     punch_frames_left = list(iterate_with_delays(punch_frames_left, punch_delays))
 
     run_frames_right = load_frame_sequence(datadir, 'run', 6)
-    run_frames_left = map(flip_frame, run_frames_right) 
+    run_frames_left = map(flip_frame, run_frames_right)
     run_delays = [5] * 6
     run_frames_right = list(iterate_with_delays(run_frames_right, run_delays))
     run_frames_left = list(iterate_with_delays(run_frames_left, run_delays))
 
     jump_frames_right = load_frame_sequence(datadir, 'jump', 4)
-    jump_frames_left = map(flip_frame, jump_frames_right) 
+    jump_frames_left = map(flip_frame, jump_frames_right)
     jump_delays = [3, 15, 18, 20]
     jump_frames_right = list(iterate_with_delays(jump_frames_right, jump_delays))
     jump_frames_left = list(iterate_with_delays(jump_frames_left, jump_delays))
@@ -323,7 +323,7 @@ def main():
                 #
                 # => [[x1, x0],
                 #     [y1, y0]]
-                # 
+                #
                 # note: reversed wrt the above.
                 rect2 = (thing2.hitbox_passive.point + thing2.location).reshape(-1, 1).repeat(2, 1)
                 rect2[:,0] += thing2.hitbox_passive.size

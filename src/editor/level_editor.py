@@ -24,14 +24,14 @@ class Main(QtGui.QMainWindow):
 
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        
+
         self.level = QGraphicsScene(self.ui.graphicsView)
         self.ui.graphicsView.setScene(self.level)
-        
+
         self.ui.action_New.triggered.connect(self.onNew)
-        
+
         self.ui.actionNew_Rect.triggered.connect(self.onNewRect)
-        
+
         self.file_save = QFileDialog(self, 'Choose file', '.')
         self.file_save.setAcceptMode(QFileDialog.AcceptSave)
         self.file_save.setFileMode(QFileDialog.AnyFile)
@@ -43,7 +43,7 @@ class Main(QtGui.QMainWindow):
         self.file_open.setFileMode(QFileDialog.AnyFile)
         self.file_open.fileSelected.connect(self.onOpen)
         self.ui.action_Open.triggered.connect(self.file_open.show)
-        
+
         self.dirty = False
         self.level.changed.connect(lambda: self.__setattr__('dirty', True))
 
@@ -54,7 +54,7 @@ class Main(QtGui.QMainWindow):
     def onNew(self):
         if self.dirty:
             self.file_save.show()
-        
+
         self.level.clear()
 
     def onOpen(self, filename):
@@ -79,7 +79,7 @@ class Main(QtGui.QMainWindow):
             rects.append(LevelRect(itemrect.x(), itemrect.y(),
                                    itemrect.width(), itemrect.height(),
                                    itemlocation.x(), itemlocation.y()))
-        
+
         with open(filename, 'wb') as levelfile:
             pickle.dump(LevelDescriptor(1, rects), levelfile, protocol=2)
 

@@ -50,7 +50,7 @@ class physics(object):
     GROUP_VELOCITY = 20
     GROUP_LOCATION = 30
     GROUP_LAST = 40
-     
+
     def __init__(self, entity):
         '''
         entity - the entity to act upon

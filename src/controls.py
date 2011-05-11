@@ -162,7 +162,7 @@ class move_while_key_pressed(object):
         elif event.type == KEYUP:
             self.state = self.state_decelerate
         return self.on_key
-        
+
 class jump_when_key_pressed(object):
     '''
     Accelerates the entity along the given acceleration vector for some frames.
