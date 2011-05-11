@@ -1,38 +1,20 @@
 from __future__ import print_function, absolute_import
-import time
-import os
-import numpy
+
+import itertools
 import math
+import os
+import time
+
+import numpy
 import pygame
-from pygame.locals import *
-import events
+
 import components
 import controls
+import events
 import physics
-import itertools
 from constants import *
-from collections import defaultdict
 from util import *
 
-def iterate_with_delays(frames, delays):
-    '''
-    Frames is a list of tuples (image,
-    frame_times is a list of numbers - how many ticks to wait before returning the given frame.
-    '''
-    tick = 0
-    frame = 0
-    while frame < len(frames):
-        yield frames[frame]
-        tick += 1
-        if tick >= delays[frame]:
-            tick = 0
-            frame += 1
-
-def wall(entity):
-    if entity.location[0] < 10:
-        entity.location[0] = 10
-    elif entity.location[0] > 990:
-        entity.location[0] = 990
 
 def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
     idle_right = load_frame(datadir, 'model')
@@ -43,20 +25,20 @@ def create_viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_p
     punch_frames_right = [idle_right] + punch_frames_right
     punch_frames_left = [idle_left] + punch_frames_left
     punch_delays = [2, 8, 6, 8, 2]
-    punch_frames_right = list(iterate_with_delays(punch_frames_right, punch_delays))
-    punch_frames_left = list(iterate_with_delays(punch_frames_left, punch_delays))
+    punch_frames_right = list(repeat_each(punch_frames_right, punch_delays))
+    punch_frames_left = list(repeat_each(punch_frames_left, punch_delays))
 
     run_frames_right = load_frame_sequence(datadir, 'run', 6)
     run_frames_left = map(flip_frame, run_frames_right)
     run_delays = [5] * 6
-    run_frames_right = list(iterate_with_delays(run_frames_right, run_delays))
-    run_frames_left = list(iterate_with_delays(run_frames_left, run_delays))
+    run_frames_right = list(repeat_each(run_frames_right, run_delays))
+    run_frames_left = list(repeat_each(run_frames_left, run_delays))
 
     jump_frames_right = load_frame_sequence(datadir, 'jump', 4)
     jump_frames_left = map(flip_frame, jump_frames_right)
     jump_delays = [3, 15, 18, 20]
-    jump_frames_right = list(iterate_with_delays(jump_frames_right, jump_delays))
-    jump_frames_left = list(iterate_with_delays(jump_frames_left, jump_delays))
+    jump_frames_right = list(repeat_each(jump_frames_right, jump_delays))
+    jump_frames_left = list(repeat_each(jump_frames_left, jump_delays))
 
     player = components.entity('Player', clock, keyboard,
                                location=(100, 0),
@@ -139,23 +121,6 @@ def create_drake(datadir, clock):
     physics.regular_physics(drake)
     drake.physics.add(physics.apply_friction(5), components.physics.GROUP_VELOCITY)
     return drake
-
-def collision_check(l1, s1, l2, s2):
-    r1, r2 = (l1 + s1), (l2 + s2)
-    return not (l2[0] > r1[0] or r2[0] < l1[0] or l2[1] > r1[1] or r2[1] < l1[1])
-
-def smooth_clamp_to(v, s):
-    if v[0] == 0:
-        return numpy.array((0.0, math.copysign(s[1], v[1])))
-    elif v[1] == 0:
-        return numpy.array((math.copysign(s[0], v[0]), 0.0))
-    d = numpy.abs(s / v)
-    if d[0] < d[1] and not (math.isnan(d[0]) or math.isinf(d[0])):
-        return v * d[0]
-    elif not (math.isnan(d[1]) or math.isinf(d[1])):
-        return v * d[1]
-    else:
-        return v
 
 def passive_passive_collisions(things):
     '''

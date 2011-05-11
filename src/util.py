@@ -1,14 +1,24 @@
 from __future__ import print_function, absolute_import
-import sys
+
+import cPickle as pickle
 import os
+import sys
 import numpy
 import pygame.image
-import cPickle as pickle
-import components
+from itertools import repeat, izip
+
+
+def repeat_each(items, repeats):
+    '''Iterate items, repeatedly yielding each item the corresponding times.'''
+    for i, r in izip(items, repeats):
+        for j in repeat(i, r):
+            yield j
+
 
 def arrayify(x):
     '''Constructs a float array from x'''
     return numpy.array(x, dtype=float)
+
 
 def find_datadir():
     '''
@@ -24,7 +34,9 @@ def find_datadir():
     '''
     return os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
 
+
 frame_cache = dict()
+
 
 def load_frame(dir, name):
     '''
@@ -45,12 +57,14 @@ def load_frame(dir, name):
     frame_cache[name] = data
     return data
 
+
 def load_frame_sequence(dir, basename, number, start=1):
     '''
     Loads dir/basenameS.png through dir/basenameN+S.png and returns them as a list.
     S and N are start and number, respectively.
     '''
     return [load_frame(dir, basename + str(n)) for n in range(start, number + start)]
+
 
 def flip_frame(frame):
     flipped_name = frame['name'] + '/flipped'
