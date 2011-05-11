@@ -3,3 +3,5 @@
 *.pyo
 *.out
 .settings/
+.ropeproject/
+
