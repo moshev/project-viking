@@ -1,0 +1,18 @@
+Ä}q(U:/usr/lib/python2.7/site-packages/numpy/lib/index_tricks.py}q(Udiag_indicesqcrope.base.oi.memorydb
+ScopeInfo
+q)Åq}qUnoneqÖqhÜUbuiltinq	Utupleq
+UunknownÖqás}qÜbUdiag_indices_fromqh)Åq}qhÖh	h
+hás}qÜbuU:/usr/lib/python2.7/site-packages/numpy/core/fromnumeric.py}q(Uallqh)Åq}qhUunknownÖqháUunknownÖqs}qÜbUanyqh)Åq}qhhháhs}qÜbUargminqh)Åq}qhhÜhs}qÜbuUutil.pyq }q!(Urepeat_eachq"h)Åq#}q$h	Ulistq%háh	h%háÜhs}q&ÜbU
+flip_frameq'h)Åq(}q)hÖ(h	Udictq*UbuiltinUstrÜq+hts}q,ÜbU
+load_frameq-h)Åq.}q/hh+Ühs}q0ÜbUfind_datadirq1h)Åq2}q3)hs}q4ÜbUload_frame_sequenceq5h)Åq6}q7(hh+hhths}q8ÜbuUentities/__init__.pyq9}q:(Uvikingq;h)Åq<}q=(hUinstanceq>Udefinedq?U	events.pyq@U
+dispatcherqAáÜh>h?h@hAáÜhhhhth>h?Ucomponents.pyqBUentityqCáÜs}qDÜbUsheepqEh)ÅqF}qGhh>h?h@hAáÜÜhs}qHÜbUdrakeqIh)ÅqJ}qKhh>h?h@hAáÜÜhs}qLÜbUfloaty_sheepqMh)ÅqN}qOhh>h?h@hAáÜÜhs}qPÜbuhB}qQ(Ugraphics.__init__h)ÅqR}qSh>h?hBUgraphicsqTáÜhháhs}qUÜbUentity.set_frameh)ÅqV}qWh>h?hBhCáÜhÜhs}qXÜbUmotion.__init__h)ÅqY}qZh>h?hBUmotionq[áÜhháhs}q\ÜbhCh)Åq]}q^}q_Utagsq`h+sÜbUphysics.__init__h)Åqa}qbh>h?hBUphysicsqcáÜh>h?hBhCáÜÜhs}qdÜbUentity.__init__h)Åqe}qf((h>h?hBhCáÜh+hhh(h	h
+hhth>h?hBh[áÜhhhh>h?hBhTáÜhth(h>h?hBhCáÜh+hhh(h	h
+hhth>h?hBh[áÜhhhh>h?hBhTáÜhthu}qgÜbUhitbox.__init__h)Åqh}qih>h?hBUhitboxqjáÜ(h	h
+hht(h	h
+hhtáhs}qkÜbuU
+physics.pyql}qm(Uactive_passive_collisionsqnh)Åqo}qph	h%h>h?hBhCáÜáÖhs}qqÜbUspeed_limiterqrh)Åqs}qt(h	h
+hhtÖhs}quÜbUapply_frictionqvh)Åqw}qxhÖhs}qyÜbUregular_physicsqzh)Åq{}q|h>h?hBhCáÜÖhs}q}ÜbUpassive_passive_collisionsq~h)Åq}qÄ(h	h%h>h?hBhCáÜáÖhh	h%háÖhu}qÅÜbuUproject_viking.pyqÇ}qÉ(Upassive_walls_collisionsqÑh)ÅqÖ}qÜ(h	h%háh	h%h>h?hBhjáÜáÜhh	h%h>h?hBhCáÜáh	h%h>h?hBhjáÜáÜhu}qáÜbUmainqàh)Åqâ}qä)hs}qãUdeadqåh>h?hBhCáÜsÜbuh@}qç(Udispatcher.dispatchh)Åqé}qèh>h?h@hAáÜhÜhs}qêÜbUdispatcher.__init__h)Åqë}qíh>h?h@hAáÜh+Ühs}qìÜbuUcontrols.pyqî}qï(Uanimation.__init__h)Åqñ}qó(h>h?hîU	animationqòáÜh>h?hBhCáÜh	h%háh>h?hîUlooped_animationqôáÜhths}qöÜbUjump_when_key_pressed.__init__h)Åqõ}qú(h>h?hîUjump_when_key_pressedqùáÜh>h?hBhCáÜh(h	h
+hhthths}qûÜbUlooped_animation.starth)Åqü}q†h>h?hîhôáÜÖhs}q°ÜbU animation_while_keydown.__init__h)Åq¢}q£((h>h?hîUanimation_while_keydownq§áÜh>h?hBhCáÜh	h%háhh>h?hîhôáÜhth(h>h?hîh§áÜh>h?hBhCáÜh	h%háhh>h?hîUloop_while_keydownq•áÜhthu}q¶ÜbUlooped_animation.__init__h)Åqß}q®((h>h?hîhôáÜh>h?hBhCáÜh	h%(h	h*h+htá(h	h
+hhthth(h>h?hîhôáÜh>h?hBhCáÜh	h%há(h	h
+hhththu}q©ÜbUloop_while_keydown.__init__h)Åq™}q´(h>h?hîh•áÜh>h?hBhCáÜh	h%há(h	h
+hhthh>h?hîhôáÜhths}q¨Übuu.
