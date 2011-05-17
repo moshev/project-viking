@@ -163,9 +163,9 @@ def resolve_wall_collisions(entities, walls):
             if side == 3:
                 thing.tags.add('grounded')
 
-            side = side // 2
-            thing.motion.v[side] = 0
-            thing.location[side] += diff
+            if (thing.motion.v[side // 2] < 0) == (side % 2 == 0):
+                thing.motion.v[side // 2] = 0
+            thing.location[side // 2] += diff
 
 
 def resolve_passive_passive_collisions(entities):
