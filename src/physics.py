@@ -8,6 +8,7 @@ from constants import *
 from collections import defaultdict
 from util import *
 
+
 def apply_friction(friction):
     def friction_on(entity):
         if 'grounded' in entity.tags:

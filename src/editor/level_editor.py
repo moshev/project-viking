@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division, generators, print_function, with_statement
+from __future__ import division, generators, print_function, with_statement, absolute_import
 
 import sys
 import numpy
@@ -9,14 +9,12 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import QPoint, QString
 from PyQt4.QtGui import QGraphicsScene, QGraphicsRectItem, QFileDialog
 
-from collections import namedtuple
 from itertools import imap
 
-from level_editor_mainwindow import Ui_MainWindow
-from levelpart import LevelPart
+from .level_editor_mainwindow import Ui_MainWindow
+from .levelpart import LevelPart
 
-LevelDescriptor = namedtuple('LevelDescriptor', 'version rects')
-LevelRect = namedtuple('LevelRect', 'x y w h dx dy')
+import levelformat
 
 class Main(QtGui.QMainWindow):
     def __init__(self):
@@ -76,12 +74,12 @@ class Main(QtGui.QMainWindow):
         for item in self.ui.graphicsView.items():
             itemrect = item.rect()
             itemlocation = item.scenePos()
-            rects.append(LevelRect(itemrect.x(), itemrect.y(),
+            rects.append(levelformat.LevelRect(itemrect.x(), itemrect.y(),
                                    itemrect.width(), itemrect.height(),
                                    itemlocation.x(), itemlocation.y()))
 
         with open(filename, 'wb') as levelfile:
-            pickle.dump(LevelDescriptor(1, rects), levelfile, protocol=2)
+            pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile, protocol=2)
 
 def leveleditor_main():
     app = QtGui.QApplication(sys.argv)

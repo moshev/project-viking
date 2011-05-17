@@ -5,6 +5,7 @@ import os
 import sys
 import numpy
 import pygame.image
+import components
 from itertools import repeat, izip
 
 
