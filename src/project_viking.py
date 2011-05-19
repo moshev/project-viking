@@ -78,9 +78,9 @@ def main(level_file):
             for thing in entities:
                 thing.tags.discard('grounded')
 
-            collisions.resolve_wall_collisions(entities, walls)
             collisions.resolve_passive_active_collisions(entities)
             collisions.resolve_passive_passive_collisions(entities)
+            collisions.resolve_wall_collisions(entities, walls)
 
             do_frame = False
 

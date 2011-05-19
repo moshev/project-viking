@@ -163,10 +163,8 @@ def resolve_wall_collisions(entities, walls):
             if side == 3:
                 thing.tags.add('grounded')
 
-            if (thing.motion.v[side // 2] < 0) == (side % 2 == 0):
-                thing.motion.v[side // 2] = 0
-            thing.location[side // 2] += diff
-
+            thing.motion.v[side // 2] = diff
+            thing.motion.a[side // 2] -= diff
 
 def resolve_passive_passive_collisions(entities):
     '''Makes colliding entities bounce off each other as though they were
@@ -175,7 +173,6 @@ def resolve_passive_passive_collisions(entities):
     TODO: Add elasticity parameters and not this sheepy shit.'''
 
     ppcollisions = passive_passive_collisions(entities)
-    move = numpy.zeros((len(entities), 2))
 
     # Passive hitbox of each entity in world coordinates.
     # Created here so we don't realloc for each collision.
@@ -214,9 +211,6 @@ def resolve_passive_passive_collisions(entities):
 
             v2[side] -= diff
             thing2.motion.a[side] += diff
-
-    for thing, vector in zip(entities, move):
-        thing.location += vector
 
 
 def resolve_passive_active_collisions(entities):
