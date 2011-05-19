@@ -205,12 +205,15 @@ def resolve_passive_passive_collisions(entities):
             side = side // 2
             diff *= 0.5
 
-            move[i1, side] += diff
-            move[i2, side] -= diff
-
             # Perfect elastic collision when both particles have mass = 1
             v1, v2 = thing1.motion.v, thing2.motion.v
             v1[side], v2[side] = v2[side], v1[side]
+
+            v1[side] += diff
+            thing1.motion.a[side] -= diff
+
+            v2[side] -= diff
+            thing2.motion.a[side] += diff
 
     for thing, vector in zip(entities, move):
         thing.location += vector

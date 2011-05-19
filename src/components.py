@@ -26,12 +26,6 @@ class hitbox(object):
         '''
         self.point, self.size = map(arrayify, (point, size))
 
-def velocity_calculator(entity):
-    entity.motion.v += entity.motion.a
-
-def location_calculator(entity):
-    entity.location += entity.motion.v
-
 class physics(object):
     '''
     A collection of ordered physics modifiers on an entity.
@@ -46,10 +40,10 @@ class physics(object):
     then everything which limits movement.
     The modifiers are applied on each clock tick.
     '''
-    GROUP_ACCELERATION = 10
+    GROUP_LAST = 0
+    GROUP_LOCATION = 10
     GROUP_VELOCITY = 20
-    GROUP_LOCATION = 30
-    GROUP_LAST = 40
+    GROUP_ACCELERATION = 30
 
     def __init__(self, entity):
         '''
@@ -82,7 +76,6 @@ class physics(object):
     def on_tick(self, event):
         if event.type != TICK: return self.on_tick
         # Reset acceleration to 0 and velocity to the difference between the last two frames.
-        self.entity.motion.a[:] = 0
         self.last_position[:] = self.entity.location
         for priority in self.modifiers.iterkeys():
             for modifier in self.modifiers[priority]:

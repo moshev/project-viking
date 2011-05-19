@@ -9,6 +9,16 @@ from collections import defaultdict
 from util import *
 
 
+
+def velocity_calculator(entity):
+    entity.motion.v += entity.motion.a
+    entity.motion.a[:] = 0
+
+
+def location_calculator(entity):
+    entity.location += entity.motion.v
+
+
 def apply_friction(friction):
     def friction_on(entity):
         if 'grounded' in entity.tags:
@@ -36,8 +46,8 @@ def regular_physics(entity):
     Returns a physics object with added velocity and location calculators and affected by gravity.
     '''
     p = components.physics(entity)
-    p.add(components.velocity_calculator, components.physics.GROUP_ACCELERATION + 1)
-    p.add(components.location_calculator, components.physics.GROUP_VELOCITY + 1)
+    p.add(velocity_calculator, components.physics.GROUP_ACCELERATION - 1)
+    p.add(location_calculator, components.physics.GROUP_VELOCITY - 1)
     p.add(gravity, components.physics.GROUP_ACCELERATION)
     return p
 
