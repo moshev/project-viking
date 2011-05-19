@@ -43,16 +43,18 @@ def main(level_file):
         pass
 
     debug_draw = False
+    pause = False
+    do_frame = False
     while True:
         start = time.clock()
 
-        clock.dispatch(tick_event)
-
+        key_events = []
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 0
             elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-                keyboard.dispatch(event)
+                key_events.append(event)
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F2:
                     debug_draw = not debug_draw
@@ -62,13 +64,25 @@ def main(level_file):
                     entities.append(drake(datadir, clock))
                 elif event.key == pygame.K_F5:
                     entities.append(floaty_sheep(datadir, clock))
+                elif event.key == pygame.K_p:
+                    pause = not pause
+                elif event.key == pygame.K_PERIOD and pause:
+                    do_frame = True
 
-        for thing in entities:
-            thing.tags.discard('grounded')
+        if (not pause) or do_frame:
+            clock.dispatch(tick_event)
 
-        collisions.resolve_wall_collisions(entities, walls)
-        collisions.resolve_passive_active_collisions(entities)
-        collisions.resolve_passive_passive_collisions(entities)
+            for event in key_events:
+                keyboard.dispatch(event)
+
+            for thing in entities:
+                thing.tags.discard('grounded')
+
+            collisions.resolve_wall_collisions(entities, walls)
+            collisions.resolve_passive_active_collisions(entities)
+            collisions.resolve_passive_passive_collisions(entities)
+
+            do_frame = False
 
         dead = []
         screen.blit(background, (0, 0))
@@ -76,7 +90,7 @@ def main(level_file):
             screen.fill((77, 80, 223), pygame.Rect(wall.point, wall.size))
 
         for thing in entities:
-            if thing.hitpoints <= 0:
+            if thing.hitpoints <= 0 or thing.location[1] > 10000:
                 dead.append(thing)
                 continue
             screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
@@ -91,6 +105,7 @@ def main(level_file):
             if thing.name == 'Player':
                 thing.hitpoints = 100
                 thing.location[:] = (500, -10)
+                thing.motion.v[:] = 0
                 if thing.physics is not None:
                     thing.physics.last_position[:] = thing.location
             else:
