@@ -15,11 +15,10 @@ def load(filename):
     Raises IOError if file doesn't exist; LevelFormatError if format is unsupported.'''
 
     with open(filename) as levelfile:
-        self.level.clear()
         data = pickle.load(levelfile)
         if data.version > 1:
             raise levelformat.LevelFormatError('Too high version: {0}'.format(data.version))
 
         # And return a list of all rects with their positions in world coordinates
-        return [components.hitbox_passive((r.x + r.dx, r.y + r.dy), (r.w, r.h)) for r in data.rects]
+        return [components.hitbox((r.x + r.dx, r.y + r.dy), (r.w, r.h)) for r in data.rects]
 
