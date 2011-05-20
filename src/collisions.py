@@ -29,7 +29,7 @@ def passive_passive_collisions(things):
     locations = numpy.array([thing.location for thing in things])
     toplefts += locations
     bottomrights += locations
-    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] >= bottomrights[:, numpy.newaxis, :], axis=2)
+    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] > bottomrights[:, numpy.newaxis, :], axis=2)
     result = numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
 
     # Remove self collisions
@@ -63,8 +63,8 @@ def active_passive_collisions(things):
     toplefts_active = toplefts_active.reshape(-1, 1, 2)
     bottomrights_active = bottomrights_active.reshape(-1, 1, 2)
 
-    negcheck = numpy.logical_or(numpy.any(toplefts_active >= bottomrights_passive, axis=2),
-                                numpy.any(bottomrights_active <= toplefts_passive, axis=2))
+    negcheck = numpy.logical_or(numpy.any(toplefts_active > bottomrights_passive, axis=2),
+                                numpy.any(bottomrights_active < toplefts_passive, axis=2))
 
     legible = numpy.all(numpy.greater([thing.hitbox_active.size for thing in things], 0), axis=1).reshape(-1, 1)
 
@@ -163,8 +163,10 @@ def resolve_wall_collisions(entities, walls):
             if side == 3:
                 thing.tags.add('grounded')
 
-            thing.motion.v[side // 2] = diff
-            thing.motion.a[side // 2] -= diff
+            v = thing.motion.v[side // 2]
+            if v * diff < 0 or abs(v) < abs(diff):
+                v = diff - numpy.copysign(0.1, diff)
+            thing.motion.v[side // 2] = v
 
 def resolve_passive_passive_collisions(entities):
     '''Makes colliding entities bounce off each other as though they were
@@ -206,11 +208,9 @@ def resolve_passive_passive_collisions(entities):
             v1, v2 = thing1.motion.v, thing2.motion.v
             v1[side], v2[side] = v2[side], v1[side]
 
-            v1[side] += diff
-            thing1.motion.a[side] -= diff
+            thing1.motion.a[side] += diff
 
-            v2[side] -= diff
-            thing2.motion.a[side] += diff
+            thing2.motion.a[side] -= diff
 
 
 def resolve_passive_active_collisions(entities):

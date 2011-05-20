@@ -18,6 +18,7 @@ from constants import *
 from util import *
 from entities import drake, floaty_sheep, sheep, viking
 import collisions
+import constants
 
 
 def main(level_file):
@@ -70,17 +71,22 @@ def main(level_file):
                     do_frame = True
 
         if (not pause) or do_frame:
-            clock.dispatch(tick_event)
-
             for event in key_events:
                 keyboard.dispatch(event)
 
+            clock.dispatch(tick_event)
+
             for thing in entities:
                 thing.tags.discard('grounded')
+                thing.motion.a[1] = constants.G
 
             collisions.resolve_passive_active_collisions(entities)
             collisions.resolve_passive_passive_collisions(entities)
             collisions.resolve_wall_collisions(entities, walls)
+
+            for thing in entities:
+                thing.motion.v += thing.motion.a
+                thing.location += thing.motion.v
 
             do_frame = False
 

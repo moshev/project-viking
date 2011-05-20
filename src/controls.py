@@ -29,7 +29,7 @@ class looped_animation(object):
 
     def on_physics(self, entity):
         if self.run:
-            self.entity.motion.a += self.a
+            self.entity.motion.v += self.a
 
     def on_key(self, event):
         if self.run and event.type == KEYDOWN and event.key in self.transitions:
@@ -137,17 +137,13 @@ class move_while_key_pressed(object):
 
     def state_accelerate(self):
         self.entity.motion.v[:] -= self.vectors[self.tick]
-        self.tick += 1
-        if self.tick >= self.frames and self.frames != 0:
-            self.tick = self.frames - 1
+        self.tick = min(self.tick + 1, self.frames - 1)
         self.entity.motion.v[:] += self.vectors[self.tick]
         return self.state_accelerate
 
     def state_decelerate(self):
         self.entity.motion.v[:] -= self.vectors[self.tick]
-        self.tick -= 1
-        if self.tick <= 0:
-            self.tick = 0
+        self.tick = max(self.tick - 1, 0)
         self.entity.motion.v[:] += self.vectors[self.tick]
         return self.state_decelerate
 
@@ -186,7 +182,7 @@ class jump_when_key_pressed(object):
         return self.state_none
 
     def state_accelerate(self):
-        self.entity.motion.a += self.a
+        self.entity.motion.v += self.a
         self.tick += 1
         if self.tick >= self.frames and self.frames != 0:
             return self.state_none
