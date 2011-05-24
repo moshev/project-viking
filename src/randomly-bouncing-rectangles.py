@@ -71,6 +71,17 @@ def main():
             time.sleep(constants.FRAME - delta)
 
 
+def genrandrects(n, minx, miny, maxx, maxy):
+    '''Returns a numpy array with dtype double-precision float
+    and shape (m, 2, 2), where the ith pair of 2d vectors are the
+    upper-left corner and size of a rectangle. The rectangles
+    do not intersect each other, a total of n attempts are made.
+
+    min/max x/y are the limits within the rectangles must fit.'''
+
+
+
+
 if __name__ == '__main__':
     main()
 

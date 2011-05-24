@@ -3,6 +3,9 @@ from __future__ import absolute_import, division, generators, print_function, wi
 import numpy
 import itertools
 import components
+import random
+
+MAX_DIFF = 5.0
 
 
 def passive_passive_collisions(things):
@@ -93,8 +96,8 @@ def passive_walls_collisions(things, walls):
     toplefts_walls = toplefts_walls.reshape(1, -1, 2)
     bottomrights_walls = bottomrights_walls.reshape(1, -1, 2);
 
-    not_colliding = numpy.logical_or(numpy.any(toplefts_things >= bottomrights_walls, axis=2),
-                                     numpy.any(bottomrights_things <= toplefts_walls, axis=2))
+    not_colliding = numpy.logical_or(numpy.any(toplefts_things > bottomrights_walls, axis=2),
+                                     numpy.any(bottomrights_things < toplefts_walls, axis=2))
 
     return numpy.logical_not(not_colliding)
 
@@ -163,10 +166,12 @@ def resolve_wall_collisions(entities, walls):
             if side == 3:
                 thing.tags.add('grounded')
 
-            v = thing.motion.v[side // 2]
-            if v * diff < 0 or abs(v) < abs(diff):
-                v = diff - numpy.copysign(0.1, diff)
-            thing.motion.v[side // 2] = v
+            if thing.motion.v[side // 2] * diff <= 0:
+                thing.motion.v[side // 2] = 0
+                if abs(diff) < MAX_DIFF:
+                    thing.location[side // 2] += diff
+                else:
+                    thing.location[side // 2] += numpy.copysign(MAX_DIFF, diff)
 
 def resolve_passive_passive_collisions(entities):
     '''Makes colliding entities bounce off each other as though they were
@@ -180,6 +185,9 @@ def resolve_passive_passive_collisions(entities):
     # Created here so we don't realloc for each collision.
     hbp1 = components.hitbox((0, 0), (0, 0))
     hbp2 = components.hitbox((0, 0), (0, 0))
+    move = numpy.zeros((len(entities), 2))
+    contributors = numpy.zeros ((len(entities),), dtype=int)
+    swaps = []
 
     for (thing1, thing2), (i1, i2) in zip(itertools.product(entities, entities),
                                           itertools.product(range(len(entities)), range(len(entities)))):
@@ -202,15 +210,32 @@ def resolve_passive_passive_collisions(entities):
                 thing2.tags.add('grounded')
 
             side = side // 2
-            diff *= 0.5
-
-            # Perfect elastic collision when both particles have mass = 1
             v1, v2 = thing1.motion.v, thing2.motion.v
-            v1[side], v2[side] = v2[side], v1[side]
 
-            thing1.motion.a[side] += diff
+            # Already moving away from each other, nothing to do here.
+            if (v1[side] - v2[side]) * diff > 0:
+                continue
 
-            thing2.motion.a[side] -= diff
+            # calculate movement
+            # Move entity if it's moving against the diff
+            if v1[side] * diff <= 0:
+                move[i1, side] += diff
+                contributors[i1] += 1
+
+            if v2[side] * diff >= 0:
+                move[i2, side] -= diff
+                contributors[i2] += 1
+
+            swaps.append((side, i1, i2))
+
+    numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
+    for thing, diff, factor in itertools.izip(entities, move, contributors):
+        if factor > 0:
+            thing.location += diff / factor
+
+    random.shuffle(swaps)
+    for side, i1, i2 in swaps:
+        entities[i1].motion.v[side], entities[i2].motion.v[side] = entities[i2].motion.v[side], entities[i1].motion.v[side]
 
 
 def resolve_passive_active_collisions(entities):

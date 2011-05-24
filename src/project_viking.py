@@ -14,7 +14,6 @@ import controls
 import events
 import physics
 import level
-from constants import *
 from util import *
 from entities import drake, floaty_sheep, sheep, viking
 import collisions
@@ -26,7 +25,7 @@ def main(level_file):
     keyboard = events.dispatcher('Keyboard')
     pygame.init()
     screen = pygame.display.set_mode((1000, 600))
-    tick_event = pygame.event.Event(TICK)
+    tick_event = pygame.event.Event(constants.TICK)
     datadir = find_datadir()
 
     player1 = viking(datadir, clock, keyboard, pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_j)
@@ -74,18 +73,21 @@ def main(level_file):
             for event in key_events:
                 keyboard.dispatch(event)
 
+            for thing in entities:
+                thing.motion.a[:] = (0, constants.G)
+
             clock.dispatch(tick_event)
 
             for thing in entities:
                 thing.tags.discard('grounded')
-                thing.motion.a[1] = constants.G
+                thing.motion.v += thing.motion.a
 
             collisions.resolve_passive_active_collisions(entities)
+            collisions.resolve_wall_collisions(entities, walls)
             collisions.resolve_passive_passive_collisions(entities)
             collisions.resolve_wall_collisions(entities, walls)
 
             for thing in entities:
-                thing.motion.v += thing.motion.a
                 thing.location += thing.motion.v
 
             do_frame = False
@@ -123,8 +125,8 @@ def main(level_file):
         pygame.display.flip()
 
         delta = time.clock() - start
-        if delta < FRAME:
-            time.sleep(FRAME - delta)
+        if delta < constants.FRAME:
+            time.sleep(constants.FRAME - delta)
 
 if __name__ == '__main__':
     main(None)
