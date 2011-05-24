@@ -83,9 +83,13 @@ def main(level_file):
                 thing.motion.v += thing.motion.a
 
             collisions.resolve_passive_active_collisions(entities)
-            collisions.resolve_wall_collisions(entities, walls)
-            collisions.resolve_passive_passive_collisions(entities)
-            collisions.resolve_wall_collisions(entities, walls)
+
+            attempts = 0
+            resolutions = 1
+            while attempts < 20 and resolutions != 0:
+                resolutions = collisions.resolve_passive_passive_collisions(entities)
+                collisions.resolve_wall_collisions(entities, walls)
+                attempts += 1
 
             for thing in entities:
                 thing.location += thing.motion.v

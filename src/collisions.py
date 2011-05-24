@@ -155,27 +155,43 @@ def resolve_wall_collisions(entities, walls):
     pwcollisions = passive_walls_collisions(entities, walls);
     hbp = components.hitbox((0, 0), (0, 0))
 
-    for ((thing, wall), collides) in zip(itertools.product(entities, walls), pwcollisions.flat):
-        if collides:
-            numpy.add(thing.hitbox_passive.point, thing.location, hbp.point)
-            hbp.size[:] = thing.hitbox_passive.size
+    move = numpy.zeros((len(entities), 2))
+    contributors = numpy.zeros ((len(entities),), dtype=int)
+    resolved = 0
 
-            side, diff = complete_collision(hbp, wall)
+    for thing, adjust, contribs, collisions in itertools.izip(entities, move, contributors, pwcollisions):
+        for wall, collides in itertools.izip(walls, collisions):
+            if collides:
+                numpy.add(thing.hitbox_passive.point, thing.location, hbp.point)
+                hbp.size[:] = thing.hitbox_passive.size
 
-            # Set grounded flag when one is on top of the other
-            if side == 3:
-                thing.tags.add('grounded')
+                side, diff = complete_collision(hbp, wall)
 
-            if thing.motion.v[side // 2] * diff <= 0:
-                thing.motion.v[side // 2] = 0
-                if abs(diff) < MAX_DIFF:
-                    thing.location[side // 2] += diff
-                else:
-                    thing.location[side // 2] += numpy.copysign(MAX_DIFF, diff)
+                # Set grounded flag when one is on top of the other
+                if side == 3:
+                    thing.tags.add('grounded')
+
+                if thing.motion.v[side // 2] * diff <= 0:
+                    thing.motion.v[side // 2] = 0
+                    adjust[side // 2] += diff
+                    contribs += 1
+
+                if diff != 0:
+                    resolved += 1
+
+    mask = contributors != 0
+    move[mask] /= contributors.reshape((-1, 1))[mask]
+    numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
+    for thing, adjust in itertools.izip(entities, move):
+        thing.location += adjust
+
+    return resolved
 
 def resolve_passive_passive_collisions(entities):
     '''Makes colliding entities bounce off each other as though they were
     all the same mass.
+
+    Returns the number of resolutions performed.
 
     TODO: Add elasticity parameters and not this sheepy shit.'''
 
@@ -189,8 +205,8 @@ def resolve_passive_passive_collisions(entities):
     contributors = numpy.zeros ((len(entities),), dtype=int)
     swaps = []
 
-    for (thing1, thing2), (i1, i2) in zip(itertools.product(entities, entities),
-                                          itertools.product(range(len(entities)), range(len(entities)))):
+    for (thing1, thing2), (i1, i2) in itertools.izip(itertools.product(entities, entities),
+                                                     itertools.product(range(len(entities)), range(len(entities)))):
         if i1 >= i2:
             continue
         if ppcollisions[i1, i2]:
@@ -226,16 +242,20 @@ def resolve_passive_passive_collisions(entities):
                 move[i2, side] -= diff
                 contributors[i2] += 1
 
-            swaps.append((side, i1, i2))
+            if v1[side] != v2[side]:
+                swaps.append((side, i1, i2))
 
+    # limit location adjustment
+    mask = contributors != 0
+    move[mask] /= contributors.reshape((-1, 1))[mask]
     numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
-    for thing, diff, factor in itertools.izip(entities, move, contributors):
-        if factor > 0:
-            thing.location += diff / factor
+    for thing, adjust in itertools.izip(entities, move):
+        thing.location += adjust
 
-    random.shuffle(swaps)
     for side, i1, i2 in swaps:
         entities[i1].motion.v[side], entities[i2].motion.v[side] = entities[i2].motion.v[side], entities[i1].motion.v[side]
+
+    return len(swaps)
 
 
 def resolve_passive_active_collisions(entities):
