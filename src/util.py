@@ -5,8 +5,11 @@ import os
 import sys
 import numpy
 import pygame.image
+import pyglet
 import components
+import ctypes
 from itertools import repeat, izip
+from pyglet import gl
 
 
 def repeat_each(items, repeats):
@@ -33,7 +36,7 @@ def find_datadir():
         +--+ src
            | sys.argv[0]
     '''
-    return os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
+    return os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
 
 
 frame_cache = dict()
@@ -81,4 +84,38 @@ def flip_frame(frame):
               'name': flipped_name}
     frame_cache[flipped_name] = newframe
     return newframe
+
+def texture_from_image(image, internalformat):
+    '''Create and return a new texture id and initialize its data with the given image.
+    image - a pygame Surface.
+    internalformat - the texture's internal format.'''
+
+    sig = image.get_shifts()
+    if sig == (0, 8 ,16, 0):
+        _format = gl.GL_RGB
+        _type = gl.GL_UNSIGNED_BYTE
+    elif sig == (0, 8, 16, 24):
+        _format = gl.GL_BGRA
+        _type = gl.GL_UNSIGNED_INT_8_8_8_8_REV
+    else:
+        return None
+
+    oldbind = ctypes.c_uint(0)
+    gl.glGetIntegerv(gl.GL_TEXTURE_BINDING_2D, ctypes.cast(ctypes.byref(oldbind), ctypes.POINTER(ctypes.c_int)))
+    texid = ctypes.c_uint(0)
+    gl.glEnable(gl.GL_TEXTURE_2D)
+    gl.glGenTextures(1, ctypes.byref(texid))
+    gl.glBindTexture(gl.GL_TEXTURE_2D, texid)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+
+    if image.get_bytesize() == 3:
+        pixels = pygame.surfarray.pixels3d(image)
+    else:
+        pixels = pygame.surfarray.pixels2d(image)
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, internalformat, image.get_width(), image.get_height(),
+                    0, _format, _type, pixels.ctypes.data)
+    gl.glFinish()
+    gl.glBindTexture(gl.GL_TEXTURE_2D, oldbind)
+    return texid
 
