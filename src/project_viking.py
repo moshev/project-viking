@@ -129,12 +129,29 @@ def main(level_file):
                 dead.append(thing)
                 continue
             #screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
-            if debug_draw:
-                pass
             #screen.fill((227, 227, 227), pygame.Rect(thing.location + thing.hitbox_passive.point, thing.hitbox_passive.size))
             #screen.fill((255, 100, 100), pygame.Rect(thing.location + thing.hitbox_active.point, thing.hitbox_active.size))
             #screen.fill((100, 255, 255), pygame.Rect(thing.location[0] - 3, thing.location[1] - 3, 6, 6))
             #screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
+        if debug_draw:
+            gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
+            gl.glDisable(gl.GL_TEXTURE_2D)
+
+            gl.glColor3f(0.89, 0.89, 0.89)
+            quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
+            quads[:,0,:] = [thing.location + thing.hitbox_passive.point for thing in entities]
+            quads[:,2,:] = [thing.hitbox_passive.size for thing in entities]
+            quads[:,2,:] += quads[:,0,:]
+            quads[:,1,0] = quads[:,0,0]
+            quads[:,1,1] = quads[:,2,1]
+            quads[:,3,0] = quads[:,2,0]
+            quads[:,3,1] = quads[:,0,1]
+            gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
+            gl.glDrawArrays(gl.GL_QUADS, 0, quads.size)
+
+            gl.glColor3f(1, 1, 1)
+            gl.glEnable(gl.GL_TEXTURE_2D)
+            gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
 
         for thing in dead:
             scream.play()
