@@ -49,7 +49,7 @@ def main(level_file):
     entities = [player1, player2]
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
     background = pygame.image.load(os.path.join(datadir, 'background.png'))
-    background_texid = texture_from_image(background, gl.GL_RGBA8)
+    background_texid = texture_from_image(background, gl.GL_RGB8)
     if level_file is None:
         walls = [components.hitbox((-5, -5), (10, 610)),
                  components.hitbox((995, -5), (10, 610)),
@@ -120,19 +120,39 @@ def main(level_file):
         gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         vertices = numpy.array((0, 0, 0, 600, 1000, 600, 1000, 0), dtype=numpy.float32)
         texcoords = numpy.array((0, 0, 0, 1, 1, 1, 1, 0), dtype=numpy.float32)
-        #gl.glColor3f(0.8, 0.5, 0.2)
         gl.glVertexPointer(2, gl.GL_FLOAT, 0, vertices.ctypes.data)
         gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, texcoords.ctypes.data)
         gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
                 dead.append(thing)
                 continue
-            #screen.blit(thing.graphics.sprite, map(math.trunc, thing.location + thing.graphics.anchor))
-            #screen.fill((227, 227, 227), pygame.Rect(thing.location + thing.hitbox_passive.point, thing.hitbox_passive.size))
-            #screen.fill((255, 100, 100), pygame.Rect(thing.location + thing.hitbox_active.point, thing.hitbox_active.size))
-            #screen.fill((100, 255, 255), pygame.Rect(thing.location[0] - 3, thing.location[1] - 3, 6, 6))
-            #screen.fill((100, 100, 255), pygame.Rect(thing.location, (1, 1)))
+
+        for thing in dead:
+            scream.play()
+            if thing.name == 'Player':
+                thing.hitpoints = 100
+                thing.location[:] = (500, -10)
+                thing.motion.v[:] = 0
+                if thing.physics is not None:
+                    thing.physics.last_position[:] = thing.location
+            else:
+                entities.remove(thing)
+
+        vertices = numpy.empty((4, 2))
+        texcoords = numpy.empty((4, 2))
+        gl.glVertexPointer(2, gl.GL_FLOAT, 0, vertices.ctypes.data)
+        gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, texcoords.ctypes.data)
+
+        for thing in entities:
+            vertices[:] = thing.graphics.sprite.quad
+            vertices += thing.graphics.anchor
+            vertices += thing.location
+            texcoords[:] = thing.graphics.sprite.texcoords
+            gl.glBindTexture(gl.GL_TEXTURE_2D, thing.graphics.sprite.texid)
+            gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+
         if debug_draw:
             gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
             gl.glDisable(gl.GL_TEXTURE_2D)
@@ -147,22 +167,11 @@ def main(level_file):
             quads[:,3,0] = quads[:,2,0]
             quads[:,3,1] = quads[:,0,1]
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
-            gl.glDrawArrays(gl.GL_QUADS, 0, quads.size)
+            gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
 
             gl.glColor3f(1, 1, 1)
             gl.glEnable(gl.GL_TEXTURE_2D)
             gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
-
-        for thing in dead:
-            scream.play()
-            if thing.name == 'Player':
-                thing.hitpoints = 100
-                thing.location[:] = (500, -10)
-                thing.motion.v[:] = 0
-                if thing.physics is not None:
-                    thing.physics.last_position[:] = thing.location
-            else:
-                entities.remove(thing)
 
         #screen.fill((120, 50, 50), pygame.Rect(0, 10, player1.hitpoints * 2, 10))
         #screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 10, player2.hitpoints * 2, 10))

@@ -1,18 +1,44 @@
-€}q(U:/usr/lib/python2.7/site-packages/numpy/lib/index_tricks.py}q(Udiag_indicesqcrope.base.oi.memorydb
+€}q(Uproject_viking.pyq}qUmaincrope.base.oi.memorydb
 ScopeInfo
-q)q}qUnoneq…qh†Ubuiltinq	Utupleq
-Uunknown…q‡s}q†bUdiag_indices_fromqh)q}qh…h	h
-h‡s}q†buU:/usr/lib/python2.7/site-packages/numpy/core/fromnumeric.py}q(Uallqh)q}qhUunknown…qh‡Uunknown…qs}q†bUanyqh)q}qhhh‡hs}q†bUargminqh)q}qhh†hs}q†buUutil.pyq }q!(Urepeat_eachq"h)q#}q$h	Ulistq%h‡h	h%h‡†hs}q&†bU
-flip_frameq'h)q(}q)h…(h	Udictq*UbuiltinUstr†q+hts}q,†bU
-load_frameq-h)q.}q/hh+†hs}q0†bUfind_datadirq1h)q2}q3)hs}q4†bUload_frame_sequenceq5h)q6}q7(hh+hhths}q8†buUentities/__init__.pyq9}q:(Uvikingq;h)q<}q=(hUinstanceq>Udefinedq?U	events.pyq@U
-dispatcherqA‡†h>h?h@hA‡†hhhhth>h?Ucomponents.pyqBUentityqC‡†s}qD†bUsheepqEh)qF}qGhh>h?h@hA‡††hs}qH†bUdrakeqIh)qJ}qKhh>h?h@hA‡††hs}qL†bUfloaty_sheepqMh)qN}qOhh>h?h@hA‡††hs}qP†buhB}qQ(Ugraphics.__init__h)qR}qSh>h?hBUgraphicsqT‡†hh‡hs}qU†bUentity.set_frameh)qV}qWh>h?hBhC‡†h†hs}qX†bUmotion.__init__h)qY}qZh>h?hBUmotionq[‡†hh‡hs}q\†bhCh)q]}q^}q_Utagsq`h+s†bUphysics.__init__h)qa}qbh>h?hBUphysicsqc‡†h>h?hBhC‡††hs}qd†bUentity.__init__h)qe}qf((h>h?hBhC‡†h+hhh(h	h
-hhth>h?hBh[‡†hhhh>h?hBhT‡†hth(h>h?hBhC‡†h+hhh(h	h
-hhth>h?hBh[‡†hhhh>h?hBhT‡†hthu}qg†bUhitbox.__init__h)qh}qih>h?hBUhitboxqj‡†(h	h
-hht(h	h
-hht‡hs}qk†buU
-physics.pyql}qm(Uactive_passive_collisionsqnh)qo}qph	h%h>h?hBhC‡†‡…hs}qq†bUspeed_limiterqrh)qs}qt(h	h
-hht…hs}qu†bUapply_frictionqvh)qw}qxh…hs}qy†bUregular_physicsqzh)q{}q|h>h?hBhC‡†…hs}q}†bUpassive_passive_collisionsq~h)q}q€(h	h%h>h?hBhC‡†‡…hh	h%h‡…hu}q†buUproject_viking.pyq‚}qƒ(Upassive_walls_collisionsq„h)q…}q†(h	h%h‡h	h%h>h?hBhj‡†‡†hh	h%h>h?hBhC‡†‡h	h%h>h?hBhj‡†‡†hu}q‡†bUmainqˆh)q‰}qŠ)hs}q‹UdeadqŒh>h?hBhC‡†s†buh@}q(Udispatcher.dispatchh)q}qh>h?h@hA‡†h†hs}q†bUdispatcher.__init__h)q‘}q’h>h?h@hA‡†h+†hs}q“†buUcontrols.pyq”}q•(Uanimation.__init__h)q–}q—(h>h?h”U	animationq˜‡†h>h?hBhC‡†h	h%h‡h>h?h”Ulooped_animationq™‡†hths}qš†bUjump_when_key_pressed.__init__h)q›}qœ(h>h?h”Ujump_when_key_pressedq‡†h>h?hBhC‡†h(h	h
-hhthths}q†bUlooped_animation.starth)qŸ}q h>h?h”h™‡†…hs}q¡†bU animation_while_keydown.__init__h)q¢}q£((h>h?h”Uanimation_while_keydownq¤‡†h>h?hBhC‡†h	h%h‡hh>h?h”h™‡†hth(h>h?h”h¤‡†h>h?hBhC‡†h	h%h‡hh>h?h”Uloop_while_keydownq¥‡†hthu}q¦†bUlooped_animation.__init__h)q§}q¨((h>h?h”h™‡†h>h?hBhC‡†h	h%(h	h*h+ht‡(h	h
-hhthth(h>h?h”h™‡†h>h?hBhC‡†h	h%h‡(h	h
-hhththu}q©†bUloop_while_keydown.__init__h)qª}q«(h>h?h”h¥‡†h>h?hBhC‡†h	h%h‡(h	h
-hhthh>h?h”h™‡†hths}q¬†buu.
+q)q}q)Uunknown…qs}qUdeadUinstanceq	Udefinedq
+Ucomponents.pyqUentityq‡†s†bsU:/usr/lib/python2.7/site-packages/numpy/core/fromnumeric.py}q(Uallh)q}qUnone…qUunknown…qh‡hs}q†bUanyh)q}qhhh‡hs}q†bUargminh)q}qhh†hs}q†buUutil.pyq}q(Urepeat_eachh)q}qUbuiltinqUlistqh‡hhh‡†hs}q†bU
+flip_frameh)q }q!Uunknown…q"…(hUdictq#UbuiltinUstr†q$hts}q%†bU
+load_frameh)q&}q'h"h$†hs}q(†bUfind_datadirh)q)}q*)hs}q+†bUload_frame_sequenceh)q,}q-(h"h$hhths}q.†buh}q/(Ugraphics.__init__h)q0}q1h	h
+hUgraphicsq2‡†hh‡hs}q3†bUentity.set_frameh)q4}q5h	h
+hh‡†h"†hs}q6†bUmotion.__init__h)q7}q8h	h
+hUmotionq9‡†hh‡hs}q:†bhh)q;}q<}q=Utagsh$s†bUphysics.__init__h)q>}q?h	h
+hUphysics‡†h	h
+hh‡††hs}q@†bUentity.__init__h)qA}qB((h	h
+hh‡†h$h"hh(hUtupleqChhth	h
+hh9‡†hhhh	h
+hh2‡†hth(h	h
+hh‡†h$h"h"h(hhChhth	h
+hh9‡†hhhh	h
+hh2‡†hthu}qD†bUhitbox.__init__h)qE}qFh	h
+hUhitbox‡†(hhChht(hhChht‡hs}qG†buU
+physics.pyqH}qI(Upassive_passive_collisionsh)qJ}qK(hhh	h
+hh‡†‡…hhhh"‡…hu}qL†bUspeed_limiterh)qM}qN(hhChht…hs}qO†bUapply_frictionh)qP}qQh…hs}qR†bUactive_passive_collisionsh)qS}qThhh	h
+hh‡†‡…hs}qU†bUregular_physicsh)qV}qWh	h
+hh‡†…hs}qX†buU:/usr/lib/python2.7/site-packages/numpy/lib/index_tricks.py}qY(Udiag_indicesh)qZ}q[hh†hhCh"‡s}q\†bUdiag_indices_fromh)q]}q^h"…hhCh"‡s}q_†buU	events.pyq`}qa(Udispatcher.__init__h)qb}qch	h
+h`U
+dispatcherqd‡†h$†hs}qe†bUdispatcher.dispatchh)qf}qgh	h
+h`hd‡†h"†hs}qh†buUcontrols.pyqi}qj(U animation_while_keydown.__init__h)qk}ql((h	h
+hiUanimation_while_keydownqm‡†h	h
+hh‡†hhh‡h"h	h
+hiUlooped_animationqn‡†hth(h	h
+hihm‡†h	h
+hh‡†hhh‡h"h	h
+hiUloop_while_keydownqo‡†hthu}qp†bUjump_when_key_pressed.__init__h)qq}qr(h	h
+hiUjump_when_key_pressed‡†h	h
+hh‡†h"(hhChhthths}qs†bUlooped_animation.starth)qt}quh	h
+hihn‡†…hs}qv†bUanimation.__init__h)qw}qx(h	h
+hiU	animation‡†h	h
+hh‡†hhh‡h	h
+hihn‡†hths}qy†bUlooped_animation.__init__h)qz}q{((h	h
+hihn‡†h	h
+hh‡†hh(hh#h$ht‡(hhChhthth(h	h
+hihn‡†h	h
+hh‡†hhh"‡(hhChhththu}q|†bUloop_while_keydown.__init__h)q}}q~(h	h
+hiho‡†h	h
+hh‡†hhh‡(hhChhth"h	h
+hihn‡†hths}q†buu.
