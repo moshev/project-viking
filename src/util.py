@@ -16,6 +16,8 @@ from pyglet import gl
 # so we don't load images twice, store mapping of loaded sprite to file in here
 frame_cache = dict()
 
+spritecommondata_cache = dict()
+
 
 class SpriteCommonData(object):
     '''
@@ -34,7 +36,7 @@ class SpriteCommonData(object):
     @property
     def texid(self):
         if self._texid is None:
-            self._texid = texture_from_image(self.image, gl.GL_RGB8)
+            self._texid = texture_from_image(self.image)
 
         return self._texid
 
@@ -93,6 +95,19 @@ def find_datadir():
     return os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
 
 
+def load_sprite(dir, name):
+    '''
+    Loads a sprite object with an image set to dir/name
+    '''
+    try:
+        return Sprite(spritecommondata_cache[name])
+    except KeyError:
+        sprite_img = pygame.image.load(os.path.join(dir, name) + '.png')
+        commondata = SpriteCommonData(sprite_img)
+        spritecommondata_cache[name] = commondata
+        return Sprite(commondata)
+
+
 def load_frame(dir, name):
     '''
     Returns a dict
@@ -101,17 +116,17 @@ def load_frame(dir, name):
     'hbp': passive hitbox
     'hba': active hitbox
     '''
-    if name in frame_cache:
+    try:
         return frame_cache[name]
-    sprite = pygame.image.load(os.path.join(dir, name) + '.png')
-    datafile = file(os.path.join(dir, name) + '.points')
-    data = pickle.load(datafile)
-    datafile.close()
-    commondata = SpriteCommonData(sprite)
-    data['sprite'] = Sprite(commondata)
-    data['name'] = name
-    frame_cache[name] = data
-    return data
+    except KeyError:
+        sprite = load_sprite(dir, name)
+        datafile = file(os.path.join(dir, name) + '.points')
+        data = pickle.load(datafile)
+        datafile.close()
+        data['sprite'] = sprite
+        data['name'] = name
+        frame_cache[name] = data
+        return data
 
 
 def load_frame_sequence(dir, basename, number, start=1):
@@ -138,18 +153,22 @@ def flip_frame(frame):
     frame_cache[flipped_name] = newframe
     return newframe
 
-def texture_from_image(image, internalformat):
+def texture_from_image(image, internalformat=None):
     '''Create and return a new texture id and initialize its data with the given image.
     image - a pygame Surface.
-    internalformat - the texture's internal format.'''
+    internalformat - the texture's internal format; if None (the default) will be set to an appropriate one.'''
 
     sig = image.get_shifts()
-    if sig == (0, 8 ,16, 0):
+    if sig == (0, 8, 16, 0):
         _format = gl.GL_RGB
         _type = gl.GL_UNSIGNED_BYTE
+        if internalformat is None:
+            internalformat = gl.GL_RGB8
     elif sig == (0, 8, 16, 24):
-        _format = gl.GL_BGRA
+        _format = gl.GL_RGBA
         _type = gl.GL_UNSIGNED_INT_8_8_8_8_REV
+        if internalformat is None:
+            internalformat = gl.GL_RGBA8
     else:
         return None
 
