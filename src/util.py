@@ -144,9 +144,9 @@ def flip_frame(frame):
     hbp, hba = frame['hbp'], frame['hba']
     hbp = components.hitbox(hbp.point * (-1, 1) + hbp.size * (-1, 0), hbp.size)
     hba = components.hitbox(hba.point * (-1, 1) + hba.size * (-1, 0), hba.size)
-    texcoords = frame['sprite'].texcoords.take((2, 3, 0, 1), axis=0)
+    texcoords = frame['sprite'].texcoords[::-1]
     newframe={'sprite': Sprite(frame['sprite'].data, texcoords),
-              'sp': frame['sp'] * (-1, 1) + (-frame['sprite'].quad[2, 1], 0),
+              'sp': frame['sp'] * (-1, 1) + (-frame['sprite'].quad[2, 0], 0),
               'hbp': hbp,
               'hba': hba,
               'name': flipped_name}

@@ -152,10 +152,6 @@ def main(level_file):
             vertices += thing.location
             texcoords[:] = thing.graphics.sprite.texcoords
             gl.glBindTexture(gl.GL_TEXTURE_2D, thing.graphics.sprite.texid)
-            if random.random() > 9:
-                print(vertices)
-                print(texcoords)
-                print(thing.graphics.sprite.texid)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         if debug_draw:
