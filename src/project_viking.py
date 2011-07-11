@@ -5,7 +5,7 @@ import math
 import os
 import time
 import sys
-
+import random
 import numpy
 import pygame
 import pyglet
@@ -38,6 +38,11 @@ def main(level_file):
     gl.glMatrixMode(gl.GL_MODELVIEW)
     gl.glLoadIdentity()
 
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendEquation(gl.GL_FUNC_ADD)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    gl.glClearColor(0, 0, 0, 1)
+
     tick_event = pygame.event.Event(constants.TICK)
     datadir = find_datadir()
     loader = pyglet.resource.Loader(datadir)
@@ -48,16 +53,13 @@ def main(level_file):
 
     entities = [player1, player2]
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
-    background = pygame.image.load(os.path.join(datadir, 'background.png'))
-    background_texid = texture_from_image(background, gl.GL_RGB8)
+    background = load_sprite(datadir, 'background')
     if level_file is None:
         walls = [components.hitbox((-5, -5), (10, 610)),
                  components.hitbox((995, -5), (10, 610)),
                  components.hitbox((-5, 595), (1010, 5)),]
     else:
         pass
-
-    # initialize static vertex data
 
     debug_draw = False
     pause = False
@@ -115,13 +117,11 @@ def main(level_file):
 
         dead = []
 
-        gl.glBindTexture(gl.GL_TEXTURE_2D, background_texid)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, background.texid)
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
-        vertices = numpy.array((0, 0, 0, 600, 1000, 600, 1000, 0), dtype=numpy.float32)
-        texcoords = numpy.array((0, 0, 0, 1, 1, 1, 1, 0), dtype=numpy.float32)
-        gl.glVertexPointer(2, gl.GL_FLOAT, 0, vertices.ctypes.data)
-        gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, texcoords.ctypes.data)
+        gl.glVertexPointer(2, gl.GL_FLOAT, 0, background.quad.ctypes.data)
+        gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, background.texcoords.ctypes.data)
         gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         for thing in entities:
@@ -140,8 +140,9 @@ def main(level_file):
             else:
                 entities.remove(thing)
 
-        vertices = numpy.empty((4, 2))
-        texcoords = numpy.empty((4, 2))
+        vertices = numpy.empty((4, 2), dtype=numpy.float32)
+        texcoords = numpy.empty((4, 2), dtype=numpy.float32)
+        ptr = vertices.ctypes.data
         gl.glVertexPointer(2, gl.GL_FLOAT, 0, vertices.ctypes.data)
         gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, texcoords.ctypes.data)
 
@@ -151,6 +152,10 @@ def main(level_file):
             vertices += thing.location
             texcoords[:] = thing.graphics.sprite.texcoords
             gl.glBindTexture(gl.GL_TEXTURE_2D, thing.graphics.sprite.texid)
+            if random.random() > 9:
+                print(vertices)
+                print(texcoords)
+                print(thing.graphics.sprite.texid)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         if debug_draw:
