@@ -182,7 +182,7 @@ class jump_when_key_pressed(object):
         return self.state_none
 
     def state_accelerate(self):
-        self.entity.motion.v += self.a
+        self.entity.motion.a[:] += self.a
         self.tick += 1
         if self.tick >= self.frames and self.frames != 0:
             return self.state_none
