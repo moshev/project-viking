@@ -156,10 +156,22 @@ def main(level_file):
             gl.glBindTexture(gl.GL_TEXTURE_2D, thing.graphics.sprite.texid)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
-        if debug_draw:
-            gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
-            gl.glDisable(gl.GL_TEXTURE_2D)
+        # draw walls
+        gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
+        gl.glDisable(gl.GL_TEXTURE_2D)
+        quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
+        quads[:,0,:] = [w.point for w in walls]
+        quads[:,2,:] = [w.size for w in walls]
+        quads[:,2,:] += quads[:,0,:]
+        quads[:,1,0] = quads[:,0,0]
+        quads[:,1,1] = quads[:,2,1]
+        quads[:,3,0] = quads[:,2,0]
+        quads[:,3,1] = quads[:,0,1]
+        gl.glColor3f(0, 0, 0.89)
+        gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
+        gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
 
+        if debug_draw:
             gl.glColor3f(0.89, 0.89, 0.89)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
             quads[:,0,:] = [thing.location + thing.hitbox_passive.point for thing in entities]
@@ -172,9 +184,9 @@ def main(level_file):
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
             gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
 
-            gl.glColor3f(1, 1, 1)
-            gl.glEnable(gl.GL_TEXTURE_2D)
-            gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
+        gl.glColor3f(1, 1, 1)
+        gl.glEnable(gl.GL_TEXTURE_2D)
+        gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
 
         #screen.fill((120, 50, 50), pygame.Rect(0, 10, player1.hitpoints * 2, 10))
         #screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 10, player2.hitpoints * 2, 10))
