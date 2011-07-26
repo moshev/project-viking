@@ -105,9 +105,11 @@ def main(level_file):
 
             attempts = 0
             resolutions = 1
+            rppc = collisions.resolve_passive_passive_collisions
+            rwc = collisions.resolve_wall_collisions
             while attempts < 20 and resolutions != 0:
-                resolutions = collisions.resolve_passive_passive_collisions(entities)
-                collisions.resolve_wall_collisions(entities, walls)
+                rwc(entities, walls)
+                resolutions = rppc(entities)
                 attempts += 1
 
             for thing in entities:
