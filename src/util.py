@@ -13,6 +13,19 @@ from itertools import repeat, izip
 from pyglet import gl
 
 
+__all__ = [
+    'repeat_each',
+    'arrayify',
+    'find_datadir',
+    'load_sprite',
+    'load_frame',
+    'load_frame_sequence',
+    'flip_frame',
+    'texture_from_image',
+]
+
+
+
 # so we don't load images twice, store mapping of loaded sprite to file in here
 frame_cache = dict()
 
