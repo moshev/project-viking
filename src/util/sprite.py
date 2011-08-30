@@ -1,4 +1,6 @@
-from __future__ import print_function, absolute_import
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, generators, print_function, with_statement
+
 
 import cPickle as pickle
 import os
@@ -14,22 +16,20 @@ from pyglet import gl
 
 
 __all__ = [
-    'repeat_each',
-    'arrayify',
-    'find_datadir',
+    'Sprite',
     'load_sprite',
     'load_frame',
     'load_frame_sequence',
     'flip_frame',
     'texture_from_image',
-]
-
+    ]
 
 
 # so we don't load images twice, store mapping of loaded sprite to file in here
-frame_cache = dict()
-
 spritecommondata_cache = dict()
+
+# cache of frames
+frame_cache = dict()
 
 
 class SpriteCommonData(object):
@@ -79,33 +79,6 @@ class Sprite(object):
     def quad(self):
         '''This sprite's quad's vertices as an array of floats, shape=(4, 2)'''
         return self.data.quad
-
-
-def repeat_each(items, repeats):
-    '''Iterate items, repeatedly yielding each item the corresponding times.'''
-    for i, r in izip(items, repeats):
-        for j in repeat(i, r):
-            yield j
-
-
-def arrayify(x):
-    '''Constructs a float array from x'''
-    return numpy.array(x, dtype=float)
-
-
-def find_datadir():
-    '''
-    Returns an absolute path to the 'data' directory.
-    Source and data should be laid out like so:
-        +/
-        |
-        +--+ data
-        |  | ... files ...
-        |
-        +--+ src
-           | sys.argv[0]
-    '''
-    return os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', 'data'))
 
 
 def load_sprite(dir, name):
@@ -202,4 +175,5 @@ def texture_from_image(image, internalformat=None):
                     0, _format, _type, pixels.ctypes.data)
     gl.glBindTexture(gl.GL_TEXTURE_2D, oldbind)
     return texid
+
 
