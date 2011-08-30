@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, generators, print_function, with_statement
 
-class BaseStateMachineState(object):
+class BaseState(object):
     '''
     Base class for states of a state machine.
     Each state is a derivative of this class that must
