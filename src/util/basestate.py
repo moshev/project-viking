@@ -24,8 +24,17 @@ class BaseState(object):
 
             self.transitions[key] = state
 
+
     def __transitions__(self):
+        '''
+        Override this method in subclasses.
+        It must return a dict mapping events to classes, from this a mapping from events to
+        class instances will be constructed, where across the entire state machine each class
+        will have precisely one instance shared by all states which have an event that leads
+        to that class.
+        '''
         return {}
+
 
     def next(self, event):
         '''
