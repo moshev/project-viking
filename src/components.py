@@ -1,7 +1,7 @@
 from __future__ import print_function, absolute_import
 import numpy
+import util
 from collections import defaultdict
-from util import arrayify
 from constants import *
 
 class graphics(object):
@@ -12,11 +12,11 @@ class graphics(object):
         upper-left corner, relative to the object's location.
         '''
         self.sprite = sprite
-        self.anchor = arrayify(anchor)
+        self.anchor = util.arrayify(anchor)
 
 class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
-        self.v, self.a = map(arrayify, (velocity, acceleration))
+        self.v, self.a = map(util.arrayify, (velocity, acceleration))
 
 class hitbox(object):
     def __init__(self, point, size):
@@ -24,7 +24,7 @@ class hitbox(object):
         point, size - tuples of two numbers describing the
           upper-left corner and size (width, height) of the entity
         '''
-        self.point, self.size = map(arrayify, (point, size))
+        self.point, self.size = map(util.arrayify, (point, size))
 
 class physics(object):
     '''
@@ -98,7 +98,7 @@ class entity(object):
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
-        self.location = arrayify(location)
+        self.location = util.arrayify(location)
         self.motion = motion
         self.graphics = graphics
         self.physics = physics
