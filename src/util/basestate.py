@@ -27,3 +27,9 @@ class BaseState(object):
     def __transitions__(self):
         return {}
 
+    def next(self, event):
+        '''
+        Get the next state from this, based on event. Returns None if no transition is defined.
+        '''
+        return self.transitions.get(event)
+
