@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, generators, print_function, with_statement
 
-import util.basestate
 import unittest
+import util
 
 class BaseStateSimpleTest(unittest.TestCase):
 
