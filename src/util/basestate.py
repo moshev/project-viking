@@ -15,12 +15,14 @@ class BaseState(object):
         if instances is None:
             instances = {}
 
+        if self.__class__ not in instances:
+            instances[self.__class__] = self
+
         for key, cls in self.transitions.items():
             if cls in instances:
                 state = instances[cls]
             else:
                 state = cls(instances)
-                instances[cls] = state
 
             self.transitions[key] = state
 
