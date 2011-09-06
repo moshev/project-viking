@@ -106,6 +106,7 @@ class entity(object):
         self.hitbox_passive = hitbox_passive
         self.tags = set()
         self.hitpoints = hitpoints
+        self.controller = None
 
     def set_frame(self, frame):
         self.graphics.sprite = frame['sprite']

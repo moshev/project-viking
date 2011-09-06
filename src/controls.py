@@ -6,6 +6,10 @@ import animatorium
 from pygame.locals import *
 
 
+__all__ = ['BaseActionState',
+           'Controller']
+
+
 class BaseActionState(util.basestate.BaseState):
     '''
     An action state has an on_tick(entity) method which must return
@@ -62,6 +66,7 @@ class Controller(object):
         '''
 
         self.entity = entity
+        self.controller = self
 
         # Allow passing a class or an instance
         if isinstance(initial_action, type):
@@ -87,6 +92,8 @@ class Controller(object):
         else:
             self.animation_event = None
 
+        return self.on_tick
+
 
     def on_key(self, event):
         try:
@@ -100,6 +107,8 @@ class Controller(object):
         except KeyError:
             # Key not in map. So do nothing.
             pass
+
+        return self.on_key
 
 
 class looped_animation(object):
