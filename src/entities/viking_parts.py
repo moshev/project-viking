@@ -274,11 +274,31 @@ class JumpAnimation(BaseAnimation):
     '''
     def __init__(self, flipped=False):
         super(JumpAnimation, self).__init__()
+        self._next_transition = None
+        self._iter = None
         delays = [3, 15, 18, 20]
         frames = util.load_frame_sequence(util.find_datadir(), 'jump', 4)
         if (flipped):
             frames = map(util.flip_frame, frames)
         self.__frames__ = list(util.repeat_each(frames, delays))
+
+
+    def next(self, event):
+        if event is not None:
+            self._next_transition = super(JumpAnimation, self).next(event)
+            return self
+        else:
+            next = self._next_transition or super(JumpAnimation, self).next(None)
+            self._next_transition = super(JumpAnimation, self).next(None)
+            self._iter = None
+            return next
+
+
+    def __iter__(self):
+        if self._iter is None:
+            self._iter = super(JumpAnimation, self).__iter__()
+
+        return self._iter
 
 
 class JumpRightAnimation(JumpAnimation):
