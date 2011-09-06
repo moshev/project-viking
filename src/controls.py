@@ -6,6 +6,40 @@ import animatorium
 from pygame.locals import *
 
 
+class BaseActionState(util.basestate.BaseState):
+    '''
+    An action state has an on_tick(entity) method which must return
+    the next action state if this one has finished, plus a "name".
+    The name will be used as an event for the animation framework.
+
+    If the subclass defines a __reset__(self) method, it
+    will be called before returning the next state from the next() method.
+    '''
+    def __init__(self, name):
+        '''
+        Initialise an action state.
+
+        name - state's name
+        '''
+        super(BaseActionState, self).__init__()
+        self.name = name
+
+
+    def on_tick(self, entity):
+        raise NotImplementedError
+
+
+    def __reset__(self):
+        pass
+
+
+    def next(self, event):
+        next = super(BaseActionState, self).next(event)
+        if next:
+            next.__reset__()
+        return next
+
+
 class Controller(object):
     '''
     Takes keyboard and clock input from an entity and

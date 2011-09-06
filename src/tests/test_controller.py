@@ -55,8 +55,10 @@ class AnimationStateB(animatorium.BaseAnimationState):
             yield {'sprite': None, 'sp': None, 'hbp': None, 'hba': None}
 
 
-class ActionStateA(util.basestate.BaseState):
+class ActionStateA(controls.BaseActionState):
     ticks = 0
+    def __init__(self):
+        super(ActionStateA, self).__init__('stateA')
 
 
     def __transitions__(self):
@@ -67,13 +69,14 @@ class ActionStateA(util.basestate.BaseState):
         ActionStateA.ticks += 1
 
 
-    @property
-    def name(self):
-        return 'stateA'
+    def __reset__(self):
+        ActionStateA.ticks = 0
 
 
-class ActionStateB(util.basestate.BaseState):
+class ActionStateB(controls.BaseActionState):
     ticks = 0
+    def __init__(self):
+        super(ActionStateB, self).__init__('stateB')
 
 
     def __transitions__(self):
@@ -84,9 +87,8 @@ class ActionStateB(util.basestate.BaseState):
         ActionStateB.ticks += 1
 
 
-    @property
-    def name(self):
-        return 'stateB'
+    def __reset__(self):
+        ActionStateB.ticks = 0
 
 
 class DummyEvent(object):
@@ -110,7 +112,6 @@ class DummyEntity(object):
 
 class TestController(unittest.TestCase):
     def setUp(self):
-        print('setup')
         ActionStateA.ticks = 0
         ActionStateB.ticks = 0
         AnimationStateA.iters = 0
@@ -121,19 +122,33 @@ class TestController(unittest.TestCase):
 
 
     def test_two_ticks(self):
+        self.assertEquals(0, AnimationStateA.iters)
+        self.c.on_tick(None)
+        self.assertEquals(1, AnimationStateA.iters)
+        self.c.on_tick(None)
+        self.assertEquals(2, ActionStateA.ticks)
+
+
+    def test_keypress(self):
         self.c.on_tick(None)
         self.c.on_tick(None)
         self.assertEquals(2, ActionStateA.ticks)
         self.assertEquals(1, AnimationStateA.iters)
 
-
-    def test_keyress(self):
-        self.c.on_tick(None)
-        self.c.on_tick(None)
-        self.assertEquals(2, ActionStateA.ticks)
-        self.assertEquals(1, AnimationStateA.iters)
         self.c.on_key(DummyEvent(K_b, KEYDOWN))
         self.assertEquals(0, AnimationStateB.iters)
+        self.assertEquals(0, ActionStateB.ticks)
+
         self.c.on_tick(None)
         self.assertEquals(1, AnimationStateB.iters)
-        self.assertEquals(2, ActionStateA.ticks)
+        self.assertEquals(1, ActionStateB.ticks)
+
+        self.c.on_key(DummyEvent(K_a, KEYDOWN))
+        self.assertEquals(0, ActionStateA.ticks)
+        self.assertEquals(1, AnimationStateA.iters)
+
+        self.c.on_tick(None)
+        self.assertEquals(2, AnimationStateA.iters)
+        self.assertEquals(1, ActionStateA.ticks)
+
+
