@@ -171,7 +171,8 @@ def resolve_wall_collisions(entities, walls):
                 if side == 3:
                     thing.tags.add('grounded')
 
-                if thing.motion.v[side // 2] * diff <= 0:
+                v = thing.motion.v[side // 2]
+                if v != 0 and (v * diff < 0 or (diff == 0 and (v > 0) == side % 2)):
                     thing.motion.v[side // 2] = 0
                     adjust[side // 2] += diff
                     contribs += 1
