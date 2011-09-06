@@ -28,7 +28,7 @@ def viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
     player.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
     player.physics.add(physics.speed_limiter((10, 10000)), components.physics.GROUP_VELOCITY)
 
-    player.controller = controls.Controller(player, viking_parts.IdleRight, viking_parts.DummyAnimation,
+    player.controller = controls.Controller(player, viking_parts.IdleRight, viking_parts.IdleRightAnimation,
                                             {(key_left, KEYUP): 'left_release',
                                              (key_left, KEYDOWN): 'left_press',
                                              (key_right, KEYUP): 'right_release',

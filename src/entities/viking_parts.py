@@ -189,6 +189,122 @@ class JumpFacingLeft(controls.BaseActionState):
                 'right_press': WalkRight}
 
 
+class BaseAnimation(animatorium.BaseAnimationState):
+    '''Defines all transitions.'''
+
+
+    def __transitions__(self):
+        return {None: self._none_transition,
+                'idle_right': IdleRightAnimation,
+                'idle_left': IdleLeftAnimation,
+                'walk_right': WalkRightAnimation,
+                'walk_left': WalkLeftAnimation,
+                'jump_right': JumpRightAnimation,
+                'jump_left': JumpLeftAnimation,
+                'jump_facing_right': JumpFacingRightAnimation,
+                'jump_facing_left': JumpFacingLeftAnimation,}
+
+
+class OneFrameLoopedAnimation(BaseAnimation):
+    '''
+    Loops one frame forever.
+
+    frame_name - the name of the frame to loop.
+
+    flipped - if True, flip the frame.
+    '''
+    def __init__(self, frame_name, flipped=False):
+        self._none_transition = self.__class__
+        super(OneFrameLoopedAnimation, self).__init__()
+        frame = util.load_frame(util.find_datadir(), frame_name)
+        if flipped:
+            frame = util.flip_frame(frame)
+        self.frame = frame
+
+
+    def __iter__(self):
+        while True:
+            yield self.frame
+
+
+class LoopedAnimation(BaseAnimation):
+    '''
+    Loops a sequence of frames forever.
+
+    frame_name - base name of the frames
+
+    delays - how many frames of screen time each frame takes
+
+    flipped - if the frames should be flipped
+    '''
+    def __init__(self, frame_name, delays, flipped=False):
+        self._none_transition = self.__class__
+        super(LoopedAnimation, self).__init__()
+        frames = util.load_frame_sequence(util.find_datadir(), frame_name, len(delays))
+        if (flipped):
+            frames = map(util.flip_frame, frames)
+        self.__frames__ = list(util.repeat_each(frames, delays))
+
+
+class IdleRightAnimation(OneFrameLoopedAnimation):
+    def __init__(self):
+        super(IdleRightAnimation, self).__init__('model', False)
+
+
+class IdleLeftAnimation(OneFrameLoopedAnimation):
+    def __init__(self):
+        super(IdleLeftAnimation, self).__init__('model', True)
+
+
+class WalkRightAnimation(LoopedAnimation):
+    def __init__(self):
+        super(WalkRightAnimation, self).__init__('run', [5] * 6, False)
+
+
+class WalkLeftAnimation(LoopedAnimation):
+    def __init__(self):
+        super(WalkLeftAnimation, self).__init__('run', [5] * 6, True)
+
+
+class JumpAnimation(BaseAnimation):
+    '''
+    Basis for jump animations.
+
+    flipped - False for right, True for left
+    '''
+    def __init__(self, flipped=False):
+        super(JumpAnimation, self).__init__()
+        delays = [3, 15, 18, 20]
+        frames = util.load_frame_sequence(util.find_datadir(), 'jump', 4)
+        if (flipped):
+            frames = map(util.flip_frame, frames)
+        self.__frames__ = list(util.repeat_each(frames, delays))
+
+
+class JumpRightAnimation(JumpAnimation):
+    def __init__(self):
+        self._none_transition = WalkRightAnimation
+        super(JumpRightAnimation, self).__init__(False)
+
+
+class JumpLeftAnimation(JumpAnimation):
+    def __init__(self):
+        self._none_transition = WalkLeftAnimation
+        super(JumpLeftAnimation, self).__init__(True)
+
+
+class JumpFacingRightAnimation(JumpAnimation):
+    def __init__(self):
+        self._none_transition = IdleRightAnimation
+        super(JumpFacingRightAnimation, self).__init__(False)
+
+
+class JumpFacingLeftAnimation(JumpAnimation):
+    def __init__(self):
+        self._none_transition = IdleLeftAnimation
+        super(JumpFacingLeftAnimation, self).__init__(True)
+
+
 class DummyAnimation(animatorium.BaseAnimationState):
     '''just iterates a single frame'''
     def __init__(self):
