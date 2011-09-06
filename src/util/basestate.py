@@ -7,24 +7,15 @@ class BaseState(object):
     Each state is a derivative of this class that must
     define a __transitions__() method returning a dictionary
     mapping inputs to classes.
+
+    Derivatives MUST have a no-args constructor.
+
+    Do not forget to call super.__init__ in derivatives!
     '''
 
-    def __init__(self, instances=None):
+    def __init__(self):
         '''Create a new state machine starting from this state.'''
-        self.transitions = self.__transitions__()
-        if instances is None:
-            instances = {}
-
-        if self.__class__ not in instances:
-            instances[self.__class__] = self
-
-        for key, cls in self.transitions.items():
-            if cls in instances:
-                state = instances[cls]
-            else:
-                state = cls(instances)
-
-            self.transitions[key] = state
+        self.transitions = None
 
 
     def __transitions__(self):
@@ -42,5 +33,25 @@ class BaseState(object):
         '''
         Get the next state from this, based on event. Returns None if no transition is defined.
         '''
+        if self.transitions is None:
+            BaseState._init_transitions(self)
         return self.transitions.get(event)
+
+
+    @staticmethod
+    def _init_transitions(root):
+        '''
+        Initialises all transition dicts starting at the root.
+        '''
+        instances = {root.__class__: root}
+        classes = list(root.__transitions__().values())
+        while len(classes) > 0:
+            cls = classes.pop()
+            if cls not in instances:
+                state = cls()
+                instances[cls] = cls()
+                classes.extend(state.__transitions__().values())
+
+        for state in instances.values():
+            state.transitions = {evt: instances[cls] for evt, cls in state.__transitions__().items()}
 
