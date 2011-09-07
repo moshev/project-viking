@@ -53,5 +53,7 @@ class BaseState(object):
                 classes.extend(state.__transitions__().values())
 
         for state in instances.values():
-            state.transitions = {evt: instances[cls] for evt, cls in state.__transitions__().items()}
+            state.transitions = dict()
+            for evt, cls in state.__transitions__().items():
+                state.transitions[evt] = instances[cls]
 
