@@ -52,22 +52,23 @@ def animatorium(initial_state):
         state = initial_state
         frames = iter(state)
         event = yield None
+        switch = False
 
         while frames is not None and state is not None:
-            switch = False
-
-            if event is not None:
-                switch = True
-            else:
+            if event is None:
                 try:
                     event = (yield next(frames))
                 except StopIteration:
                     switch = True
+            else:
+                switch = True
 
             if switch:
                 state = state.next(event)
-                if state is not None: frames = iter(state)
+                if state is not None:
+                    frames = iter(state)
                 event = None
+                switch = False
 
     # Initialise generator so it will react to send() events
     loop = main_loop()

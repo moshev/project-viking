@@ -85,6 +85,7 @@ class Controller(object):
     def on_tick(self, event):
         frame = self.animation.send(self.animation_event)
         self.entity.set_frame(frame)
+
         next_action = self.action.on_tick(self.entity)
         if next_action is not None:
             self.animation_event = next_action.name
@@ -109,6 +110,10 @@ class Controller(object):
             pass
 
         return self.on_key
+
+
+
+# OLD SHIT BELOW ----------------------------------------------------------------------------------
 
 
 class looped_animation(object):
