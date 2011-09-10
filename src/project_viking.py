@@ -114,6 +114,7 @@ def main(level_file):
 
             for thing in entities:
                 thing.location += thing.motion.v
+                numpy.round(thing.location, out=thing.location)
 
             do_frame = False
 
