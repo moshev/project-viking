@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, generators, print_function, wi
 import components
 import controls
 import physics
+import util
 from pygame.constants import KEYDOWN, KEYUP
 
 
@@ -40,15 +41,39 @@ def viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
 
 def drake(datadir, clock):
     '''Make an inert drake'''
-    raise RuntimeError('Not implemented')
+    drake_frame = util.load_frame(datadir, 'drake')
+    drake = components.entity('Drake', clock, location=(500, 0),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=200)
+    drake.set_frame(drake_frame)
+    physics.regular_physics(drake)
+    drake.physics.add(physics.apply_friction(5), components.physics.GROUP_VELOCITY)
+    return drake
 
 
 def sheep(datadir, clock):
     '''Make an inert sheep'''
-    raise RuntimeError('Not implemented')
+    sheep_frame = util.load_frame(datadir, 'sheep')
+    sheep = components.entity('Sheep', clock, location=(500, 0),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=2)
+    sheep.set_frame(sheep_frame)
+    physics.regular_physics(sheep)
+    sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
+    return sheep
 
 
 def floaty_sheep(datadir, clock):
     '''Make an inert sheep unaffected by gravity'''
-    raise RuntimeError('Not implemented')
+    sheep_frame = util.load_frame(datadir, 'sheep')
+    sheep = components.entity('Sheep', clock, location=(500, 400),
+                              motion=components.motion(),
+                              graphics=components.graphics(None),
+                              hitpoints=2)
+    sheep.set_frame(sheep_frame)
+    components.physics(sheep)
+    sheep.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
+    return sheep
 
