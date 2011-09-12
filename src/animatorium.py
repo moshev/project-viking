@@ -64,8 +64,12 @@ def animatorium(initial_state):
                 switch = True
 
             if switch:
-                state = state.next(event)
-                if state is not None:
+                newstate = state.next(event)
+                if newstate is not None:
+                    frames = iter(newstate)
+                    state = newstate
+                elif event is None:
+                    # reiterate current state
                     frames = iter(state)
                 event = None
                 switch = False
