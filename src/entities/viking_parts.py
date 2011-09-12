@@ -206,7 +206,7 @@ class PunchBaseState(controls.BaseActionState):
 
     def on_tick(self, entity):
         if self.ticks > PUNCH_TICKS:
-            return self.next('punch_release')
+            return self.next(None)
         self.ticks += 1
 
 
@@ -220,7 +220,7 @@ class PunchLeftIdle(PunchBaseState):
 
 
     def __transitions__(self):
-        return {'punch_release': IdleLeft,
+        return {None: IdleLeft,
                 'left_press': WalkLeft,
                 'right_press': WalkRight,
                 'jump_press': JumpFacingLeft}
@@ -232,7 +232,7 @@ class PunchRightIdle(PunchBaseState):
 
 
     def __transitions__(self):
-        return {'punch_release': IdleRight,
+        return {None: IdleRight,
                 'left_press': WalkLeft,
                 'right_press': WalkRight,
                 'jump_press': JumpFacingRight}
@@ -244,7 +244,7 @@ class PunchLeftWalking(PunchBaseState):
 
 
     def __transitions__(self):
-        return {'punch_release': WalkLeft,
+        return {None: WalkLeft,
                 'left_release': PunchLeftIdle,
                 'right_press': WalkRight,
                 'jump_press': JumpLeft}
@@ -256,7 +256,7 @@ class PunchRightWalking(PunchBaseState):
 
 
     def __transitions__(self):
-        return {'punch_release': WalkRight,
+        return {None: WalkRight,
                 'left_press': WalkLeft,
                 'right_release': PunchRightIdle,
                 'jump_press': JumpRight}
