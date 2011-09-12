@@ -34,8 +34,10 @@ def viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
                                              (key_left, KEYDOWN): 'left_press',
                                              (key_right, KEYUP): 'right_release',
                                              (key_right, KEYDOWN): 'right_press',
-                                             (key_jump, KEYUP): 'up_release',
-                                             (key_jump, KEYDOWN): 'up_press',})
+                                             (key_jump, KEYUP): 'jump_release',
+                                             (key_jump, KEYDOWN): 'jump_press',
+                                             (key_punch, KEYUP): 'punch_release',
+                                             (key_punch, KEYDOWN): 'punch_press',})
     return player
 
 
