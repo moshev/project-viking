@@ -59,7 +59,7 @@ def main(level_file):
                  components.hitbox((995, -5), (10, 610)),
                  components.hitbox((-5, 595), (1010, 5)),]
     else:
-        pass
+        walls = level.load(level_file)
 
     debug_draw = False
     pause = False
@@ -205,7 +205,19 @@ def main(level_file):
             time.sleep(constants.FRAME - delta)
 
 if __name__ == '__main__':
-    main(None)
+    # ask for a level file...
+    import sys
+    from Tkinter import Tk
+    from tkFileDialog import askopenfilename
+    level_file = None
+    if len(sys.argv) == 2:
+        level_file = sys.argv[1]
+    else:
+        Tk().withdraw()
+        level_file = askopenfilename(filetypes=('Level {.level}',))
+        if level_file == '':
+            level_file = None
+    main(level_file)
     pygame.quit()
 
 
