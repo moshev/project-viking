@@ -16,6 +16,8 @@ from .levelpart import LevelPart
 
 import levelformat
 
+__all__ = ['Main', 'leveleditor_main']
+
 class Main(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -23,7 +25,7 @@ class Main(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.level = QGraphicsScene(self.ui.graphicsView)
+        self.level = self.ui.graphicsView.scene() or QGraphicsScene()
         self.ui.graphicsView.setScene(self.level)
 
         self.ui.action_New.triggered.connect(self.onNew)
