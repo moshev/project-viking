@@ -31,6 +31,7 @@ class Main(QtGui.QMainWindow):
         self.ui.action_New.triggered.connect(self.onNew)
 
         self.ui.actionNew_Rect.triggered.connect(self.onNewRect)
+        self.ui.actionDelete_Rects.triggered.connect(self.onDeleteRects)
 
         self.file_save = QFileDialog(self, 'Choose file', '.')
         self.file_save.setAcceptMode(QFileDialog.AcceptSave)
@@ -50,6 +51,10 @@ class Main(QtGui.QMainWindow):
     def onNewRect(self):
         rect = LevelPart(-30, -10, 60, 20)
         self.level.addItem(rect)
+
+    def onDeleteRects(self):
+        for item in self.level.selectedItems():
+            self.level.removeItem(item)
 
     def onNew(self):
         if self.dirty:
