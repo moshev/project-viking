@@ -16,6 +16,8 @@ from .levelpart import LevelPart
 
 import levelformat
 
+__all__ = ['Main', 'leveleditor_main']
+
 class Main(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -23,12 +25,13 @@ class Main(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.level = QGraphicsScene(self.ui.graphicsView)
+        self.level = self.ui.graphicsView.scene() or QGraphicsScene()
         self.ui.graphicsView.setScene(self.level)
 
         self.ui.action_New.triggered.connect(self.onNew)
 
         self.ui.actionNew_Rect.triggered.connect(self.onNewRect)
+        self.ui.actionDelete_Rects.triggered.connect(self.onDeleteRects)
 
         self.file_save = QFileDialog(self, 'Choose file', '.')
         self.file_save.setAcceptMode(QFileDialog.AcceptSave)
@@ -48,6 +51,10 @@ class Main(QtGui.QMainWindow):
     def onNewRect(self):
         rect = LevelPart(-30, -10, 60, 20)
         self.level.addItem(rect)
+
+    def onDeleteRects(self):
+        for item in self.level.selectedItems():
+            self.level.removeItem(item)
 
     def onNew(self):
         if self.dirty:

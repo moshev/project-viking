@@ -6,9 +6,8 @@ import cPickle as pickle
 import levelformat
 import numpy
 
-class Level(object):
-    pass
 
+__all__ = ['load']
 
 def load(filename):
     '''Returns a list of hitboxes - the rects stored in the file.

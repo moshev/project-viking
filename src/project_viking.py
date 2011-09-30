@@ -59,7 +59,7 @@ def main(level_file):
                  components.hitbox((995, -5), (10, 610)),
                  components.hitbox((-5, 595), (1010, 5)),]
     else:
-        pass
+        walls = level.load(level_file)
 
     debug_draw = False
     pause = False
@@ -75,6 +75,8 @@ def main(level_file):
                 key_events.append(event)
 
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return 0
                 if event.key == pygame.K_F2:
                     debug_draw = not debug_draw
                 elif event.key == pygame.K_F3:
@@ -120,12 +122,16 @@ def main(level_file):
 
         dead = []
 
+        gl.glLoadIdentity()
         gl.glBindTexture(gl.GL_TEXTURE_2D, background.texid)
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glVertexPointer(2, gl.GL_FLOAT, 0, background.quad.ctypes.data)
         gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, background.texcoords.ctypes.data)
         gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+
+        # Now move camera
+        gl.glTranslated(500 - entities[0].location[0], 300 - entities[0].location[1], 0.0)
 
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
@@ -199,6 +205,19 @@ def main(level_file):
             time.sleep(constants.FRAME - delta)
 
 if __name__ == '__main__':
-    main(None)
+    # ask for a level file...
+    import sys
+    from Tkinter import Tk
+    from tkFileDialog import askopenfilename
+    level_file = None
+    if len(sys.argv) == 2:
+        level_file = sys.argv[1]
+    else:
+        Tk().withdraw()
+        level_file = askopenfilename(filetypes=('Level {.level}',))
+        if level_file == '':
+            level_file = None
+    main(level_file)
+    pygame.quit()
 
 
