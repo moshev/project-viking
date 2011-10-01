@@ -21,7 +21,7 @@ __all__ = ['Main', 'leveleditor_main']
 
 class Main(QtGui.QMainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        super(Main, self).__init__()
 
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -51,21 +51,40 @@ class Main(QtGui.QMainWindow):
         self.file_open.fileSelected.connect(self.onOpen)
         self.file_open.setModal(True)
         self.ui.action_Open.triggered.connect(self.file_open.show)
-        self.selectionGroup = None
 
     def onSelectionChanged(self):
+        if self.level is None:
+            return
+
+        # remove selector handles
+        for item in self.level.items():
+            if isinstance(item, ScaleHandle):
+                self.level.removeItem(item)
+
         selection = self.level.selectedItems()
-        if len(selection) == 0:
-            # remove selector handles
-            handles = [item for item in self.level.items() if isinstance(item, ScaleHandle)]
+        if len(selection) > 0:
+            boundingRect = QtCore.QRectF()
+            for rect in imap(lambda i: i.boundingRect().translated(i.pos()), selection):
+                boundingRect |= rect
+            left = boundingRect.left()
+            right = boundingRect.right()
+            top = boundingRect.top()
+            bottom = boundingRect.bottom()
+            cx = (left + right) / 2
+            cy = (top + bottom) / 2
+            handles = [ScaleHandle(left, top),
+                       ScaleHandle(cx, top),
+                       ScaleHandle(right, top),
+
+                       ScaleHandle(left, cy),
+                       ScaleHandle(right, cy),
+
+                       ScaleHandle(left, bottom),
+                       ScaleHandle(cx, bottom),
+                       ScaleHandle(right, bottom),]
+
             for h in handles:
-                self.level.removeItem(h)
-            if self.selectionGroup is not None:
-                self.level.destroyItemGroup(self.selectionGroup)
-        else:
-            self.selectionGroup = self.level.createItemGroup(selection)
-            boundingRect = self.selectionGroup.mapRectToScene(self.selectionGroup.boundingRect())
-            self.level.addItem(ScaleHandle(boundingRect.top(), boundingRect.left()))
+                self.level.addItem(h)
 
     def onNewRect(self):
         rect = LevelPart(-30, -10, 60, 20)
