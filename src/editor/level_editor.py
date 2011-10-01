@@ -13,6 +13,7 @@ from itertools import imap
 
 from .level_editor_mainwindow import Ui_MainWindow
 from .levelpart import LevelPart
+from .scalehandle import ScaleHandle
 
 import levelformat
 
@@ -27,26 +28,44 @@ class Main(QtGui.QMainWindow):
 
         self.level = self.ui.graphicsView.scene() or QGraphicsScene()
         self.ui.graphicsView.setScene(self.level)
+        self.level.selectionChanged.connect(self.onSelectionChanged)
 
         self.ui.action_New.triggered.connect(self.onNew)
 
         self.ui.actionNew_Rect.triggered.connect(self.onNewRect)
         self.ui.actionDelete_Rects.triggered.connect(self.onDeleteRects)
 
-        self.file_save = QFileDialog(self, 'Choose file', '.')
+        self.file_save = QFileDialog(self, 'Choose file to save as', '.')
         self.file_save.setAcceptMode(QFileDialog.AcceptSave)
         self.file_save.setFileMode(QFileDialog.AnyFile)
+        self.file_save.setDefaultSuffix('level')
+        self.file_save.setNameFilter('.level files (*.level)')
         self.file_save.fileSelected.connect(self.onSave)
+        self.file_save.setModal(True)
         self.ui.action_Save.triggered.connect(self.file_save.show)
 
         self.file_open = QFileDialog(self, 'Choose level to open', '.')
         self.file_open.setAcceptMode(QFileDialog.AcceptOpen)
-        self.file_open.setFileMode(QFileDialog.AnyFile)
+        self.file_open.setFileMode(QFileDialog.ExistingFile)
+        self.file_open.setNameFilter('.level files (*.level)')
         self.file_open.fileSelected.connect(self.onOpen)
+        self.file_open.setModal(True)
         self.ui.action_Open.triggered.connect(self.file_open.show)
+        self.selectionGroup = None
 
-        self.dirty = False
-        self.level.changed.connect(lambda: self.__setattr__('dirty', True))
+    def onSelectionChanged(self):
+        selection = self.level.selectedItems()
+        if len(selection) == 0:
+            # remove selector handles
+            handles = [item for item in self.level.items() if isinstance(item, ScaleHandle)]
+            for h in handles:
+                self.level.removeItem(h)
+            if self.selectionGroup is not None:
+                self.level.destroyItemGroup(self.selectionGroup)
+        else:
+            self.selectionGroup = self.level.createItemGroup(selection)
+            boundingRect = self.selectionGroup.mapRectToScene(self.selectionGroup.boundingRect())
+            self.level.addItem(ScaleHandle(boundingRect.top(), boundingRect.left()))
 
     def onNewRect(self):
         rect = LevelPart(-30, -10, 60, 20)
@@ -57,14 +76,9 @@ class Main(QtGui.QMainWindow):
             self.level.removeItem(item)
 
     def onNew(self):
-        if self.dirty:
-            self.file_save.show()
-
         self.level.clear()
 
     def onOpen(self, filename):
-        if self.dirty:
-            self.file_save.show()
         with open(filename) as levelfile:
             self.level.clear()
             data = pickle.load(levelfile)
@@ -79,9 +93,10 @@ class Main(QtGui.QMainWindow):
     def onSave(self, filename=None):
         rects = []
         for item in self.ui.graphicsView.items():
-            itemrect = item.rect()
-            itemlocation = item.scenePos()
-            rects.append(levelformat.LevelRect(itemrect.x(), itemrect.y(),
+            if isinstance(item, LevelPart):
+                itemrect = item.rect()
+                itemlocation = item.scenePos()
+                rects.append(levelformat.LevelRect(itemrect.x(), itemrect.y(),
                                    itemrect.width(), itemrect.height(),
                                    itemlocation.x(), itemlocation.y()))
 

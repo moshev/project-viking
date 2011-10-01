@@ -6,7 +6,9 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QPainter, QPen, QBrush, QGraphicsItem, QGraphicsRectItem
 
 class LevelPart(QGraphicsRectItem):
-    '''[(regular pen, brush), (selected pen, brush)]'''
+    '''A part of a level - just a rectangle.'''
+
+    # [(regular pen, brush), (selected pen, brush)]
     STYLE = [(Qt.black, QBrush(Qt.blue, Qt.SolidPattern)),
              (Qt.red, QBrush(Qt.red, Qt.Dense4Pattern))]
 
