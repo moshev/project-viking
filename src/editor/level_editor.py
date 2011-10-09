@@ -10,6 +10,7 @@ from PyQt4.QtCore import QPoint, QString
 from PyQt4.QtGui import QGraphicsScene, QGraphicsRectItem, QFileDialog
 
 from itertools import imap
+from util import iapply
 
 from .level_editor_mainwindow import Ui_MainWindow
 from .levelpart import LevelPart
@@ -51,15 +52,22 @@ class Main(QtGui.QMainWindow):
         self.file_open.fileSelected.connect(self.onOpen)
         self.file_open.setModal(True)
         self.ui.action_Open.triggered.connect(self.file_open.show)
+        self.handles = []
+
+
+    def _addrect(self, x, y, w, h, cx=0, cy=0):
+        rect = LevelPart(x, y, w, h, self.onRectMoved)
+        rect.setPos(cx, cy)
+        self.level.addItem(rect)
+
 
     def onSelectionChanged(self):
         if self.level is None:
             return
 
         # remove selector handles
-        for item in self.level.items():
-            if isinstance(item, ScaleHandle):
-                self.level.removeItem(item)
+        iapply(self.level.removeItem, self.handles)
+        del self.handles[:]
 
         selection = self.level.selectedItems()
         if len(selection) > 0:
@@ -72,30 +80,37 @@ class Main(QtGui.QMainWindow):
             bottom = boundingRect.bottom()
             cx = (left + right) / 2
             cy = (top + bottom) / 2
-            handles = [ScaleHandle(left, top),
-                       ScaleHandle(cx, top),
-                       ScaleHandle(right, top),
+            self.handles[:] = [ScaleHandle(left, top),
+                               ScaleHandle(cx, top),
+                               ScaleHandle(right, top),
 
-                       ScaleHandle(left, cy),
-                       ScaleHandle(right, cy),
+                               ScaleHandle(left, cy),
+                               ScaleHandle(right, cy),
 
-                       ScaleHandle(left, bottom),
-                       ScaleHandle(cx, bottom),
-                       ScaleHandle(right, bottom),]
+                               ScaleHandle(left, bottom),
+                               ScaleHandle(cx, bottom),
+                               ScaleHandle(right, bottom),]
 
-            for h in handles:
-                self.level.addItem(h)
+            iapply(self.level.addItem, self.handles)
+
+
+    def onRectMoved(self, rect, dist):
+        if rect.isSelected():
+            self.onSelectionChanged()
+
 
     def onNewRect(self):
-        rect = LevelPart(-30, -10, 60, 20)
-        self.level.addItem(rect)
+        self._addrect(-30, -10, 60, 20)
+
 
     def onDeleteRects(self):
         for item in self.level.selectedItems():
             self.level.removeItem(item)
 
+
     def onNew(self):
         self.level.clear()
+
 
     def onOpen(self, filename):
         with open(filename) as levelfile:
@@ -105,9 +120,8 @@ class Main(QtGui.QMainWindow):
                 print('Too high version:', data.version)
                 return
             for rect in data.rects:
-                part = LevelPart(rect.x, rect.y, rect.w, rect.h)
-                part.translate(rect.dx, rect.dy)
-                self.level.addItem(part)
+                self._addrect(rect.x, rect.y, rect.w, rect.h, rect.dx, rect.dy)
+
 
     def onSave(self, filename=None):
         rects = []
@@ -122,8 +136,10 @@ class Main(QtGui.QMainWindow):
         with open(filename, 'wb') as levelfile:
             pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile, protocol=2)
 
+
 def leveleditor_main():
     app = QtGui.QApplication(sys.argv)
     window = Main()
     window.show()
     sys.exit(app.exec_())
+
