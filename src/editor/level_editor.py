@@ -56,7 +56,8 @@ class Main(QtGui.QMainWindow):
 
 
     def _addrect(self, x, y, w, h, cx=0, cy=0):
-        rect = LevelPart(x, y, w, h, self.onRectMoved)
+        rect = LevelPart(x, y, w, h)
+        rect.partMoved.connect(self.onRectMoved)
         rect.setPos(cx, cy)
         self.level.addItem(rect)
 
@@ -81,14 +82,14 @@ class Main(QtGui.QMainWindow):
             cx = (left + right) / 2
             cy = (top + bottom) / 2
             self.handles[:] = [ScaleHandle(left, top),
-                               ScaleHandle(cx, top),
+                               ScaleHandle(cx, top, restrictx=True),
                                ScaleHandle(right, top),
 
-                               ScaleHandle(left, cy),
-                               ScaleHandle(right, cy),
+                               ScaleHandle(left, cy, restricty=True),
+                               ScaleHandle(right, cy, restricty=True),
 
                                ScaleHandle(left, bottom),
-                               ScaleHandle(cx, bottom),
+                               ScaleHandle(cx, bottom, restrictx=True),
                                ScaleHandle(right, bottom),]
 
             iapply(self.level.addItem, self.handles)
@@ -96,7 +97,8 @@ class Main(QtGui.QMainWindow):
 
     def onRectMoved(self, rect, dist):
         if rect.isSelected():
-            self.onSelectionChanged()
+            for h in self.handles:
+                h.moveBy(dist.x(), dist.y())
 
 
     def onNewRect(self):
