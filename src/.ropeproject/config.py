@@ -65,7 +65,7 @@ def set_prefs(prefs):
 
     # Builtin and c-extension modules that are allowed to be imported
     # and inspected by rope.
-    prefs['extension_modules'] = []
+    prefs['extension_modules'] = ['numpy', 'PyQt4']
 
     # Add all standard c-extensions to extension_modules list.
     prefs['import_dynload_stdmods'] = True

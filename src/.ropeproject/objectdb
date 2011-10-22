@@ -2,22 +2,22 @@
 ScopeInfo
 q)q}qUinstanceqUdefinedqhUDummyEntityq	‡†…Uunknown…q
 s}q†bUDummyEvent.__init__h)q}qhhUtests/test_controller.pyqU
-DummyEventq‡†Unoneq…qh‡h
-s}q†buUutil/basestate.pyq}q(UBaseState.__transitions__h)q}qhhUutil/basestate.pyqU	BaseStateq‡†…(UbuiltinqUdictqhhts}q†bUBaseState.__init__h)q}q(hhUutil/basestate.pyqh‡†UbuiltinUstr†q†h
-hhUtests/test_controller.pyq UActionStateAq!‡†h†h
-hhhh‡†…h
-u}q"†bUBaseState.nexth)q#}q$hhhh‡†Uunknown…q%†h
-s}q&†bUBaseState._init_transitionsh)q'}q(hhUutil/basestate.pyh‡†…h
-s}q)†buUcomponents.pyq*}q+(Ugraphics.__init__h)q,}q-Uinstanceq.Udefinedq/h*Ugraphicsq0‡†Unone…q1h1‡Uunknown…q2s}q3†bUentity.set_frameh)q4}q5h.h/h*Uentityq6‡†Uunknown…q7†h2s}q8†bUmotion.__init__h)q9}q:h.h/h*Umotionq;‡†h1h1‡h2s}q<†bh6h)q=}q>}q?UtagsUbuiltinUstr†q@s†bUphysics.__init__h)qA}qBh.h/h*Uphysics‡†h.h/h*h6‡††h2s}qC†bUentity.__init__h)qD}qE((h.h/h*h6‡†h@h7h1h1(UbuiltinqFUtupleqGUunknown…qHhHth.h/h*h;‡†h1h1h1h.h/h*h0‡†hHth2(h.h/h*h6‡†h@h7h7h1(hFhGhHhHth.h/h*h;‡†h1h1h1h.h/h*h0‡†h1th2u}qI†bUhitbox.__init__h)qJ}qKh.h/h*Uhitbox‡†(hFhGhHhHt(hFhGhHhHt‡h2s}qL†buUanimatorium.pyqM}qNUanimatoriumqOh)qP}qQhh UDummyAnimationStateqR‡…h
-s}qS†bsU
-physics.pyqT}qU(Uactive_passive_collisionsh)qV}qWhFUlistqXh.h/h*h6‡†‡…h2s}qY†bUspeed_limiterh)qZ}q[(hFhGhHhHt…h2s}q\†bUapply_frictionh)q]}q^hH…h2s}q_†bUregular_physicsh)q`}qah.h/h*h6‡†…h2s}qb†bUpassive_passive_collisionsh)qc}qd(hFhXh.h/h*h6‡†‡…h2hFhXh7‡…h2u}qe†buUproject_viking.pyqf}qgUmainh)qh}qi)h2s}qjUdeadh.h/h*h6‡†s†bsU	events.pyqk}ql(Udispatcher.__init__h)qm}qnh.h/hkU
-dispatcherqo‡†h@†h2s}qp†bUdispatcher.dispatchh)qq}qrh.h/hkho‡†h7†h2s}qs†buU#/usr/lib/python2.7/unittest/case.py}qtUTestCase.assertEqualh)qu}qv((hhUtests/test_controller.pyqwUTestControllerqx‡†Uunknown…qyhhwUAnimationStateAqz‡hth
-(hhUtests/test_controller.pyq{hx‡†hyhyhth
-u}q|†bsUcontrols.pyq}}q~(UBaseActionState.__init__h)q}q€hhUcontrols.pyqUBaseActionStateq‚‡†h†h
-s}qƒ†bUController.__init__h)q„}q…((hhUcontrols.pyq†U
-Controllerq‡‡†hhhh	‡†hhh!‡hhhR‡(hh(hUtupleqˆhhthtth
-(hhh†h‡‡†hhhwh	‡†hhwh!‡hhwhz‡(hh(hhˆhhthtth
-(hhUcontrols.pyq‰h‡‡†hyhUtests/test_controller.pyqŠh!‡hhŠhR‡(hh(hhˆhhthtth
-u}q‹†bU animation_while_keydown.__init__h)qŒ}q((h.h/h}Uanimation_while_keydownq‡†h.h/h*h6‡†hFhXh1‡h7h.h/h}Ulooped_animationq‡†h1th2(h.h/h}h‡†h.h/h*h6‡†hFhXh1‡h7h.h/h}Uloop_while_keydownq‡†h1th2u}q‘†bUController.on_keyh)q’}q“hhh†h‡‡†hhhh‡††h
-s}q”†bUController.on_tickh)q•}q–hhh‰h‡‡†h†h
-s}q—†bUjump_when_key_pressed.__init__h)q˜}q™(h.h/h}Ujump_when_key_pressed‡†h.h/h*h6‡†h7(hFhGhHhHthHth2s}qš†bUlooped_animation.starth)q›}qœh.h/h}h‡†…h2s}q†bUanimation.__init__h)q}qŸ(h.h/h}U	animation‡†h.h/h*h6‡†hFhXh1‡h.h/h}h‡†h1th2s}q †bUlooped_animation.__init__h)q¡}q¢((h.h/h}h‡†h.h/h*h6‡†hFhX(hFUdicth@h1t‡(hFhGhHhHth1th2(h.h/h}h‡†h.h/h*h6‡†hFhXh7‡(hFhGhHhHth1th2u}q£†bUloop_while_keydown.__init__h)q¤}q¥(h.h/h}h‡†h.h/h*h6‡†hFhXh1‡(hFhGhHhHth7h.h/h}h‡†h1th2s}q¦†buu.
+DummyEventq‡†Unone…qh‡h
+s}q†buUeditor/level_editor.pyq}q(UMain.__init__h)q}qUinstanceqUdefinedqhUMainq‡†…Uunknown…qs}q†bUMain._addrecth)q}q((hhhh‡†Uunknown…qhhhUnoneq…qhth(hhhh‡†hhhhhhthu}q †buUutil/basestate.pyq!}q"(UBaseState.__transitions__h)q#}q$hhUutil/basestate.pyU	BaseStateq%‡†…(Ubuiltinq&Udictq'hhts}q(†bUBaseState.__init__h)q)}q*(hhUutil/basestate.pyq+h%‡†UbuiltinUstr†q,†h
+hhUtests/test_controller.pyq-UActionStateAq.‡†h†h
+hhh+h%‡†…h
+u}q/†bUBaseState.nexth)q0}q1hhh+h%‡†Uunknown…†h
+s}q2†bUBaseState._init_transitionsh)q3}q4hhUutil/basestate.pyh%‡†…h
+s}q5†buUeditor/levelpart.pyq6}q7ULevelPart.__init__h)q8}q9(hhh6U	LevelPartq:‡†Uunknown…q;h;h;h;hths}q<†bsU!editor/level_editor_mainwindow.pyq=}q>UUi_MainWindow.setupUih)q?}q@hhh=UUi_MainWindowqA‡†hhhh‡††hs}qB†bsUeditor/scalehandle.pyqC}qDUScaleHandle.__init__h)qE}qF((hhhCUScaleHandleqG‡†h;h;hhhhth(hhhChG‡†h;h;hhhhth(hhhChG‡†h;h;hhhhthu}qH†bsUcomponents.pyqI}qJ(Ugraphics.__init__h)qK}qLUinstanceqMUdefinedqNhIUgraphicsqO‡†Unone…qPhP‡Uunknown…qQs}qR†bUentity.set_frameh)qS}qThMhNhIUentityqU‡†Uunknown…qV†hQs}qW†bUmotion.__init__h)qX}qYhMhNhIUmotionqZ‡†hPhP‡hQs}q[†bhUh)q\}q]}q^UtagsUbuiltinUstr†q_s†bUphysics.__init__h)q`}qahMhNhIUphysics‡†hMhNhIhU‡††hQs}qb†bUentity.__init__h)qc}qd((hMhNhIhU‡†h_hVhVhP(UbuiltinqeUtupleqfUunknown…qghgthMhNhIhZ‡†hPhPhPhMhNhIhO‡†hPthQ(hMhNhIhU‡†h_hVhPhP(hehfhghgthMhNhIhZ‡†hPhPhPhMhNhIhO‡†hgthQu}qh†bUhitbox.__init__h)qi}qjhMhNhIUhitbox‡†(hehfhghgt(hehfhghgt‡hQs}qk†buUanimatorium.pyql}qmUanimatoriumh)qn}qohh-UDummyAnimationStateqp‡…h
+s}qq†bsU
+physics.pyqr}qs(Upassive_passive_collisionsh)qt}qu(heUlistqvhMhNhIhU‡†‡…hQhehvhV‡…hQu}qw†bUspeed_limiterh)qx}qy(hehfhghgt…hQs}qz†bUapply_frictionh)q{}q|hg…hQs}q}†bUactive_passive_collisionsh)q~}qhehvhMhNhIhU‡†‡…hQs}q€†bUregular_physicsh)q}q‚hMhNhIhU‡†…hQs}qƒ†buUutil/generic.pyq„}q…Uiapplyq†h)q‡}qˆhUbuiltinq‰UlistqŠh‡†hs}q‹†bsUproject_viking.pyqŒ}qUmainh)q}q)hQs}qUdeadhMhNhIhU‡†s†bsU	events.pyq‘}q’(Udispatcher.dispatchh)q“}q”hMhNh‘U
+dispatcherq•‡†hV†hQs}q–†bUdispatcher.__init__h)q—}q˜hMhNh‘h•‡†h_†hQs}q™†buU#/usr/lib/python2.7/unittest/case.py}qšUTestCase.assertEqualh)q›}qœ((hhUtests/test_controller.pyqUTestControllerq‡†Uunknown…qŸhhUAnimationStateAq ‡hth
+(hhUtests/test_controller.pyh‡†hŸhŸhth
+u}q¡†bsUcontrols.pyq¢}q£(UBaseActionState.__init__h)q¤}q¥hhUcontrols.pyUBaseActionState‡†h,†h
+s}q¦†bUController.__init__h)q§}q¨((hhUcontrols.pyq©U
+Controllerqª‡†hhhh	‡†hhh.‡hhhp‡(h&h'(h&Utupleq«hhth,tth
+(hhUcontrols.pyq¬hª‡†hŸhUtests/test_controller.pyq­h.‡hh­hp‡(h&h'(h&h«hhth,tth
+(hhh©hª‡†hhhh	‡†hhh.‡hhh ‡(h&h'(h&h«hhth,tth
+u}q®†bU animation_while_keydown.__init__h)q¯}q°((hMhNh¢Uanimation_while_keydownq±‡†hMhNhIhU‡†hehvhP‡hVhMhNh¢Ulooped_animationq²‡†hPthQ(hMhNh¢h±‡†hMhNhIhU‡†hehvhP‡hVhMhNh¢Uloop_while_keydownq³‡†hPthQu}q´†bUController.on_keyh)qµ}q¶hhh©hª‡†hhhh‡††h
+s}q·†bUController.on_tickh)q¸}q¹hhh¬hª‡†h†h
+s}qº†bUjump_when_key_pressed.__init__h)q»}q¼(hMhNh¢Ujump_when_key_pressed‡†hMhNhIhU‡†hV(hehfhghgthgthQs}q½†bUlooped_animation.starth)q¾}q¿hMhNh¢h²‡†…hQs}qÀ†bUanimation.__init__h)qÁ}qÂ(hMhNh¢U	animation‡†hMhNhIhU‡†hehvhP‡hMhNh¢h²‡†hPthQs}qÃ†bUloop_while_keydown.__init__h)qÄ}qÅ(hMhNh¢h³‡†hMhNhIhU‡†hehvhP‡(hehfhghgthVhMhNh¢h²‡†hPthQs}qÆ†bUlooped_animation.__init__h)qÇ}qÈ((hMhNh¢h²‡†hMhNhIhU‡†hehv(heUdicth_hPt‡(hehfhghgthPthQ(hMhNh¢h²‡†hMhNhIhU‡†hehvhV‡(hehfhghgthPthQu}qÉ†buu.

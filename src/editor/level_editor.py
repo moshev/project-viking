@@ -6,7 +6,7 @@ import numpy
 import cPickle as pickle
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import QPoint, QString
+from PyQt4.QtCore import QPoint, QString, pyqtSlot
 from PyQt4.QtGui import QGraphicsScene, QGraphicsRectItem, QFileDialog
 
 from itertools import imap
@@ -53,6 +53,8 @@ class Main(QtGui.QMainWindow):
         self.file_open.setModal(True)
         self.ui.action_Open.triggered.connect(self.file_open.show)
         self.handles = []
+        self.original_selection_rect = QtCore.QRectF()
+        self.selection_rect = QtCore.QRectF()
 
 
     def _addrect(self, x, y, w, h, cx=0, cy=0):
@@ -62,6 +64,12 @@ class Main(QtGui.QMainWindow):
         self.level.addItem(rect)
 
 
+    @pyqtSlot(float, float, float, float)
+    def onSelectionRectChanged(self, dleft, dtop, dright, dbottom):
+        pass
+
+
+    @pyqtSlot()
     def onSelectionChanged(self):
         if self.level is None:
             return
@@ -81,39 +89,49 @@ class Main(QtGui.QMainWindow):
             bottom = boundingRect.bottom()
             cx = (left + right) / 2
             cy = (top + bottom) / 2
-            self.handles[:] = [ScaleHandle(left, top),
-                               ScaleHandle(cx, top, restrictx=True),
-                               ScaleHandle(right, top),
-
-                               ScaleHandle(left, cy, restricty=True),
-                               ScaleHandle(right, cy, restricty=True),
-
-                               ScaleHandle(left, bottom),
-                               ScaleHandle(cx, bottom, restrictx=True),
-                               ScaleHandle(right, bottom),]
+            self.handles[:] = [ScaleHandle(left, top, xmap=0, ymap=0),
+                               ScaleHandle(cx, top, ymap=0),
+                               ScaleHandle(right, top, xmap=1, ymap=0),
+                               ScaleHandle(right, cy, xmap=1),
+                               ScaleHandle(right, bottom, xmap=1, ymap=1),
+                               ScaleHandle(cx, bottom, ymap=1),
+                               ScaleHandle(left, bottom, xmap=0, ymap=1),
+                               ScaleHandle(left, cy, xmap=0),]
 
             iapply(self.level.addItem, self.handles)
 
+            # hook up signals. Each handle moves each handle and reports change to the level editor
+            for h1 in self.handles:
+                h1.selectionRectChanged.connect(self.onSelectionRectChanged)
+                for h2 in self.handles:
+                    if h1 != h2:
+                        h1.selectionRectChanged.connect(h2.onSelectionRectChanged)
 
+
+    @pyqtSlot(QtGui.QGraphicsObject, QtCore.QPointF)
     def onRectMoved(self, rect, dist):
         if rect.isSelected():
             for h in self.handles:
                 h.moveBy(dist.x(), dist.y())
 
 
+    @pyqtSlot()
     def onNewRect(self):
-        self._addrect(-30, -10, 60, 20)
+        self._addrect(-32, -16, 64, 32)
 
 
+    @pyqtSlot()
     def onDeleteRects(self):
         for item in self.level.selectedItems():
             self.level.removeItem(item)
 
 
+    @pyqtSlot()
     def onNew(self):
         self.level.clear()
 
 
+    @pyqtSlot(str)
     def onOpen(self, filename):
         with open(filename) as levelfile:
             self.level.clear()
@@ -125,6 +143,7 @@ class Main(QtGui.QMainWindow):
                 self._addrect(rect.x, rect.y, rect.w, rect.h, rect.dx, rect.dy)
 
 
+    @pyqtSlot(str)
     def onSave(self, filename=None):
         rects = []
         for item in self.ui.graphicsView.items():
