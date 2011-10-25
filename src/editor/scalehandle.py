@@ -9,7 +9,7 @@ class ScaleHandle(QGraphicsObject):
     '''A handle that scales a selection of items'''
 
 
-    def __init__(self, x, y, r=6, xmap=None, ymap=None, parent=None):
+    def __init__(self, selection_rect, x, y, r=6, parent=None):
         '''
         xmap/ymap define which part of the rect this handle controls
 
@@ -22,50 +22,82 @@ class ScaleHandle(QGraphicsObject):
               None - neither
         '''
         super(ScaleHandle, self).__init__(parent)
-        self.rect = QtCore.QRectF(x - r, y - r, r * 2, r * 2)
-        self.setFlags(QGraphicsItem.ItemIsMovable)
-        self.xmap = xmap
-        self.ymap = ymap
+        self.x = x
+        self.y = y
+        self.r = r
+        self.selection_rect = selection_rect
+        self.setPos(*self._pos)
+
+
+    @property
+    def _pos(self):
+        tl = self.selection_rect.topLeft()
+        w = self.selection_rect.width()
+        h = self.selection_rect.height()
+        cx = tl.x() + self.x * w
+        cy = tl.y() + self.y * h
+        return (cx, cy)
+
+
+    @property
+    def xmap(self):
+        '''Which side of the rectangle this handle controls horizontally
+        0 - left; 1 - right; None - neither'''
+        xmap = int(self.x)
+        if xmap == self.x:
+            return xmap
+        else:
+            return None
+
+
+    @property
+    def ymap(self):
+        '''Which side of the rectangle this handle controls vertically
+        0 - top; 1 - bottom; None - neither'''
+        ymap = int(self.y)
+        if ymap == self.y:
+            return ymap
+        else:
+            return None
 
 
     def boundingRect(self):
-        return self.rect
+        r = self.r
+        return QtCore.QRectF(-r, -r, r * 2, r * 2)
 
 
     def paint(self, painter, option, widget=None):
         painter.setPen(Qt.black)
         painter.setBrush(QBrush(QColor(144,51,77)))
-        painter.drawEllipse(self.rect)
+        painter.drawEllipse(self.boundingRect())
 
 
-    # emitted when this handle is moved. args: dleft, dtop, dbottom, dright
-    selectionRectChanged = pyqtSignal(float, float, float, float)
+    # emitted when this handle is moved, after the selection rect has been changed.
+    selectionRectChanged = pyqtSignal()
 
 
-    @pyqtSlot(float, float, float, float)
-    def onSelectionRectChanged(self, dleft, dtop, dright, dbottom):
-        '''Handle a change in the selection rect from other handles'''
-        dx, dy = self.dxyFromDltbr(dleft, dtop, dright, dbottom)
-        self.moveBy(dx, dy)
+    @pyqtSlot()
+    def onSelectionRectChanged(self):
+        self.setPos(*self._pos)
 
 
-    def dxyFromDltbr(self, *dltbr):
-        '''dxyFromDltbr(self, dleft, dtop, dright, dbottom)
+    def dxyFromDltrb(self, *dltrb):
+        '''dxyFromDltrb(self, dleft, dtop, dright, dbottom)
         Returns a tuple (dx, dy) by which to move this handle,
         where dx or dy might be set to 0 to account for restrictions in movement.
         '''
         dx = dy = 0.0
         if self.xmap is not None:
-            dx = dltbr[2 * self.xmap]
+            dx = dltrb[2 * self.xmap]
 
         if self.ymap is not None:
-            dy = dltbr[2 * self.ymap + 1]
+            dy = dltrb[2 * self.ymap + 1]
 
         return (dx, dy)
 
 
-    def dltbrFromDxy(self, dx, dy):
-        '''dltbrFromDxy(self, dx, dy)
+    def dltrbFromDxy(self, dx, dy):
+        '''dltrbFromDxy(self, dx, dy)
         Returns a 4-tuple (dleft, dtop, dright, dbottom) describing
         the change in the selection rect.
         '''
@@ -77,6 +109,10 @@ class ScaleHandle(QGraphicsObject):
         return tuple(delta)
 
 
+    def mousePressEvent(self, event):
+        event.accept()
+
+
     def mouseMoveEvent(self, event):
         moved = event.pos() - event.lastPos()
         dx, dy = 0.0, 0.0
@@ -85,8 +121,9 @@ class ScaleHandle(QGraphicsObject):
         if self.ymap is not None:
             dy = moved.y()
 
-        self.moveBy(dx, dy)
-        dltbr = self.dltbrFromDxy(dx, dy)
-        self.selectionRectChanged.emit(*dltbr)
+        dltrb = self.dltrbFromDxy(dx, dy)
+        self.selection_rect.adjust(*dltrb)
+        self.selectionRectChanged.emit()
+        self.setPos(*self._pos)
 
 

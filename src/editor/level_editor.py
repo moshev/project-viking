@@ -55,6 +55,7 @@ class Main(QtGui.QMainWindow):
         self.handles = []
         self.original_selection_rect = QtCore.QRectF()
         self.selection_rect = QtCore.QRectF()
+        self.selected_rect_item = QtGui.QGraphicsRectItem()
 
 
     def _addrect(self, x, y, w, h, cx=0, cy=0):
@@ -65,14 +66,21 @@ class Main(QtGui.QMainWindow):
 
 
     @pyqtSlot(float, float, float, float)
-    def onSelectionRectChanged(self, dleft, dtop, dright, dbottom):
-        pass
+    def onSelectionRectChanged(self):
+        self.selected_rect_item.setRect(self.selection_rect)
+        sx = self.selection_rect.width() / self.original_selection_rect.width()
+        sy = self.selection_rect.height() / self.original_selection_rect.height()
+        for item in self.level.selectedItems():
+            item.setTransform(QtGui.QTransform.fromScale(sx, sy))
 
 
     @pyqtSlot()
     def onSelectionChanged(self):
         if self.level is None:
             return
+
+        if self.selected_rect_item.scene() == self.level:
+            self.level.removeItem(self.selected_rect_item)
 
         # remove selector handles
         iapply(self.level.removeItem, self.handles)
@@ -83,20 +91,18 @@ class Main(QtGui.QMainWindow):
             boundingRect = QtCore.QRectF()
             for rect in imap(lambda i: i.boundingRect().translated(i.pos()), selection):
                 boundingRect |= rect
-            left = boundingRect.left()
-            right = boundingRect.right()
-            top = boundingRect.top()
-            bottom = boundingRect.bottom()
-            cx = (left + right) / 2
-            cy = (top + bottom) / 2
-            self.handles[:] = [ScaleHandle(left, top, xmap=0, ymap=0),
-                               ScaleHandle(cx, top, ymap=0),
-                               ScaleHandle(right, top, xmap=1, ymap=0),
-                               ScaleHandle(right, cy, xmap=1),
-                               ScaleHandle(right, bottom, xmap=1, ymap=1),
-                               ScaleHandle(cx, bottom, ymap=1),
-                               ScaleHandle(left, bottom, xmap=0, ymap=1),
-                               ScaleHandle(left, cy, xmap=0),]
+            self.selection_rect = boundingRect
+            self.original_selection_rect = QtCore.QRectF(boundingRect)
+            self.selected_rect_item = QtGui.QGraphicsRectItem(boundingRect)
+            self.level.addItem(self.selected_rect_item)
+            self.handles[:] = [ScaleHandle(boundingRect, 0, 0),
+                               ScaleHandle(boundingRect, 0.5, 0),
+                               ScaleHandle(boundingRect, 1, 0),
+                               ScaleHandle(boundingRect, 1, 0.5),
+                               ScaleHandle(boundingRect, 1, 1),
+                               ScaleHandle(boundingRect, 0.5, 1),
+                               ScaleHandle(boundingRect, 0, 1),
+                               ScaleHandle(boundingRect, 0, 0.5),]
 
             iapply(self.level.addItem, self.handles)
 
@@ -111,8 +117,10 @@ class Main(QtGui.QMainWindow):
     @pyqtSlot(QtGui.QGraphicsObject, QtCore.QPointF)
     def onRectMoved(self, rect, dist):
         if rect.isSelected():
+            self.selection_rect.translate(dist)
+            self.onSelectionRectChanged()
             for h in self.handles:
-                h.moveBy(dist.x(), dist.y())
+                h.onSelectionRectChanged()
 
 
     @pyqtSlot()
