@@ -20,6 +20,14 @@ import levelformat
 
 __all__ = ['Main', 'leveleditor_main']
 
+
+def itemrects(items):
+    '''generator of tuples (item, itemrect) for each item in items that has a rect'''
+    return ((item, item.data(0).toRectF())
+            for item in items
+            if not item.data(0).isNull())
+
+
 class Main(QtGui.QMainWindow):
     def __init__(self):
         super(Main, self).__init__()
@@ -70,9 +78,16 @@ class Main(QtGui.QMainWindow):
         self.selected_rect_item.setRect(self.selection_rect)
         sx = self.selection_rect.width() / self.original_selection_rect.width()
         sy = self.selection_rect.height() / self.original_selection_rect.height()
-        for item in self.level.selectedItems():
-            item.setTransform(QtGui.QTransform.fromScale(sx, sy))
-
+        for item, rect in itemrects(self.level.selectedItems()):
+            orect = item.data(1)
+            if orect.isNull():
+                orect = QtCore.QRectF(rect)
+                item.setData(1, orect)
+            else:
+                orect = orect.toRectF()
+            rect.setWidth(orect.width() * sx)
+            rect.setHeight(orect.height() * sy)
+            item.setData(0, rect)
 
     @pyqtSlot()
     def onSelectionChanged(self):
@@ -89,8 +104,9 @@ class Main(QtGui.QMainWindow):
         selection = self.level.selectedItems()
         if len(selection) > 0:
             boundingRect = QtCore.QRectF()
-            for rect in imap(lambda i: i.boundingRect().translated(i.pos()), selection):
-                boundingRect |= rect
+            for item, rect in itemrects(selection):
+                item.setData(1, rect)
+                boundingRect |= rect.translated(item.pos())
             self.selection_rect = boundingRect
             self.original_selection_rect = QtCore.QRectF(boundingRect)
             self.selected_rect_item = QtGui.QGraphicsRectItem(boundingRect)
@@ -154,13 +170,11 @@ class Main(QtGui.QMainWindow):
     @pyqtSlot(str)
     def onSave(self, filename=None):
         rects = []
-        for item in self.ui.graphicsView.items():
-            if isinstance(item, LevelPart):
-                itemrect = item.rect()
-                itemlocation = item.scenePos()
-                rects.append(levelformat.LevelRect(itemrect.x(), itemrect.y(),
-                                   itemrect.width(), itemrect.height(),
-                                   itemlocation.x(), itemlocation.y()))
+        for item, rect in itemrects(self.level.items()):
+            pos = item.scenePos()
+            rects.append(levelformat.LevelRect(rect.x(), rect.y(),
+                                               rect.width(), rect.height(),
+                                               pos.x(), pos.y()))
 
         with open(filename, 'wb') as levelfile:
             pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile, protocol=2)

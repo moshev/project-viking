@@ -13,15 +13,18 @@ class LevelPart(QGraphicsObject):
              (Qt.red, QBrush(Qt.red, Qt.Dense4Pattern))]
 
     def __init__(self, x, y, w, h, scene=None):
-        '''Create a level part occupying the given rectangle and with the given styles.
-        onMove is called as onMove(self, dist)
-        style_chooser - a callable that takes a boolean value (selected)
-                        and returns a tuple (pen, brush)'''
+        '''Create a level part occupying the given rectangle.'''
 
         super(LevelPart, self).__init__(scene)
-        self.rect = QtCore.QRectF(x, y, w, h)
+        rect = QtCore.QRectF(x, y, w, h)
+        self.setData(0, rect)
         self.setFlags(self.flags() | QGraphicsItem.ItemIsMovable
                       | QGraphicsItem.ItemIsSelectable)
+
+
+    @property
+    def rect(self):
+        return self.data(0).toRectF()
 
 
     def paint(self, painter, option, widget):
