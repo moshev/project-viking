@@ -16,26 +16,44 @@ class LevelPart(QGraphicsObject):
         '''Create a level part occupying the given rectangle.'''
 
         super(LevelPart, self).__init__(scene)
-        rect = QtCore.QRectF(x, y, w, h)
-        self.setData(0, rect)
+        self._size = QtCore.QSizeF(w, h)
+        self.setPos(x, y)
+        # dirty hack since list of selected items erases the proper class wtf???
+        self.setData(0, self)
         self.setFlags(self.flags() | QGraphicsItem.ItemIsMovable
                       | QGraphicsItem.ItemIsSelectable)
 
 
-    @property
-    def rect(self):
-        return self.data(0).toRectF()
+    def size(self):
+        '''Returns a QPointF with this part's size'''
+        return self._size
+
+
+    def width(self):
+        return self._size.width()
+
+
+    def setWidth(self, w):
+        self._size.setWidth(w)
+
+
+    def height(self):
+        return self._size.height()
+
+
+    def setHeight(self, h):
+        self._size.setHeight(h)
 
 
     def paint(self, painter, option, widget):
         pen, brush = LevelPart.STYLE[self.isSelected()]
         painter.setPen(pen)
         painter.setBrush(brush)
-        painter.drawRect(self.rect)
+        painter.drawRect(self.boundingRect())
 
 
     def boundingRect(self):
-        return self.rect
+        return QtCore.QRectF(0, 0, self._size.width(), self._size.height())
 
 
     def mouseMoveEvent(self, event):

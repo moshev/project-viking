@@ -21,11 +21,12 @@ import levelformat
 __all__ = ['Main', 'leveleditor_main']
 
 
-def itemrects(items):
+def parts(items):
     '''generator of tuples (item, itemrect) for each item in items that has a rect'''
-    return ((item, item.data(0).toRectF())
-            for item in items
-            if not item.data(0).isNull())
+    return (part
+            for part in (item.data(0).toPyObject()
+                         for item in items)
+            if isinstance(part, LevelPart))
 
 
 class Main(QtGui.QMainWindow):
@@ -69,25 +70,21 @@ class Main(QtGui.QMainWindow):
     def _addrect(self, x, y, w, h, cx=0, cy=0):
         rect = LevelPart(x, y, w, h)
         rect.partMoved.connect(self.onRectMoved)
-        rect.setPos(cx, cy)
         self.level.addItem(rect)
 
 
-    @pyqtSlot(float, float, float, float)
+    @pyqtSlot()
     def onSelectionRectChanged(self):
         self.selected_rect_item.setRect(self.selection_rect)
-        sx = self.selection_rect.width() / self.original_selection_rect.width()
-        sy = self.selection_rect.height() / self.original_selection_rect.height()
-        for item, rect in itemrects(self.level.selectedItems()):
-            orect = item.data(1)
-            if orect.isNull():
-                orect = QtCore.QRectF(rect)
-                item.setData(1, orect)
-            else:
-                orect = orect.toRectF()
-            rect.setWidth(orect.width() * sx)
-            rect.setHeight(orect.height() * sy)
-            item.setData(0, rect)
+        srw = self.selection_rect.width()
+        srh = self.selection_rect.height()
+        srtl = self.selection_rect.topLeft()
+        for part in parts(self.level.selectedItems()):
+            relrect = part.data(1).toRectF()
+            part.setWidth(relrect.width() * srw)
+            part.setHeight(relrect.height() * srh)
+            newpos = QtCore.QPointF(srw * relrect.left(), srh * relrect.top()) + srtl
+            part.setPos(newpos)
 
     @pyqtSlot()
     def onSelectionChanged(self):
@@ -101,14 +98,22 @@ class Main(QtGui.QMainWindow):
         iapply(self.level.removeItem, self.handles)
         del self.handles[:]
 
-        selection = self.level.selectedItems()
+        selection = list(parts(self.level.selectedItems()))
         if len(selection) > 0:
             boundingRect = QtCore.QRectF()
-            for item, rect in itemrects(selection):
-                item.setData(1, rect)
-                boundingRect |= rect.translated(item.pos())
+            for part in selection:
+                boundingRect |= part.boundingRect().translated(part.pos())
             self.selection_rect = boundingRect
-            self.original_selection_rect = QtCore.QRectF(boundingRect)
+            srw = boundingRect.width()
+            srh = boundingRect.height()
+            srtl = boundingRect.topLeft()
+            for part in selection:
+                pos = part.pos() - srtl
+                sz = part.size()
+                relrect = QtCore.QRectF(pos.x() / srw, pos.y() / srh,
+                                        sz.width() / srw, sz.height() / srh)
+                part.setData(1, relrect)
+
             self.selected_rect_item = QtGui.QGraphicsRectItem(boundingRect)
             self.level.addItem(self.selected_rect_item)
             self.handles[:] = [ScaleHandle(boundingRect, 0, 0),
@@ -164,17 +169,18 @@ class Main(QtGui.QMainWindow):
                 print('Too high version:', data.version)
                 return
             for rect in data.rects:
-                self._addrect(rect.x, rect.y, rect.w, rect.h, rect.dx, rect.dy)
+                self._addrect(rect.x + rect.dx, rect.y + rect.dy, rect.w, rect.h)
 
 
     @pyqtSlot(str)
     def onSave(self, filename=None):
         rects = []
-        for item, rect in itemrects(self.level.items()):
-            pos = item.scenePos()
-            rects.append(levelformat.LevelRect(rect.x(), rect.y(),
-                                               rect.width(), rect.height(),
-                                               pos.x(), pos.y()))
+        for part in parts(self.level.items()):
+            pos = part.pos()
+            # 0, 0 because legacy format ;_;
+            rects.append(levelformat.LevelRect(pos.x(), pos.y(),
+                                               part.width(), part.height(),
+                                               0, 0))
 
         with open(filename, 'wb') as levelfile:
             pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile, protocol=2)
