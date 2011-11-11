@@ -83,7 +83,8 @@ class Main(QtGui.QMainWindow):
             relrect = part.data(1).toRectF()
             part.setWidth(relrect.width() * srw)
             part.setHeight(relrect.height() * srh)
-            newpos = QtCore.QPointF(srw * relrect.left(), srh * relrect.top()) + srtl
+            newpos = QtCore.QPointF(srw * relrect.left(),
+                                    srh * relrect.top()) + srtl
             part.setPos(newpos)
 
     @pyqtSlot()
@@ -127,7 +128,8 @@ class Main(QtGui.QMainWindow):
 
             iapply(self.level.addItem, self.handles)
 
-            # hook up signals. Each handle moves each handle and reports change to the level editor
+            # hook up signals. Each handle moves each handle
+            # and reports change to the level editor
             for h1 in self.handles:
                 h1.selectionRectChanged.connect(self.onSelectionRectChanged)
                 for h2 in self.handles:
@@ -183,7 +185,8 @@ class Main(QtGui.QMainWindow):
                                                0, 0))
 
         with open(filename, 'wb') as levelfile:
-            pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile, protocol=2)
+            pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile,
+                        protocol=2)
 
 
 def leveleditor_main():

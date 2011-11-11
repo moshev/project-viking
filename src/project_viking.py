@@ -47,8 +47,10 @@ def main(level_file):
     datadir = find_datadir()
     loader = pyglet.resource.Loader(datadir)
 
-    player1 = viking(datadir, clock, keyboard, pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_j)
-    player2 = viking(datadir, clock, keyboard, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_RETURN)
+    player1 = viking(datadir, clock, keyboard,
+                     pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_j)
+    player2 = viking(datadir, clock, keyboard,
+                     pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_RETURN)
     player2.location[0] = 900
 
     entities = [player1, player2]
@@ -131,7 +133,8 @@ def main(level_file):
         gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         # Now move camera
-        gl.glTranslated(500 - entities[0].location[0], 300 - entities[0].location[1], 0.0)
+        gl.glTranslated(500 - entities[0].location[0],
+                        300 - entities[0].location[1], 0.0)
 
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
@@ -181,7 +184,8 @@ def main(level_file):
         if debug_draw:
             gl.glColor3f(0.89, 0.89, 0.89)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
-            quads[:,0,:] = [thing.location + thing.hitbox_passive.point for thing in entities]
+            quads[:,0,:] = [thing.location + thing.hitbox_passive.point
+                            for thing in entities]
             quads[:,2,:] = [thing.hitbox_passive.size for thing in entities]
             quads[:,2,:] += quads[:,0,:]
             quads[:,1,0] = quads[:,0,0]
