@@ -16,7 +16,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 100000
+NPARTICLES = 50000
 PRINTOVERTIME = False
 
 class sparse_array(object):
@@ -327,7 +327,7 @@ class attractor(object):
         weave.inline(code, ['out', 'len', 'centre', 'locations', 'strength'],
                      {'len': len(self.forces), 'locations': self.things_locations,
                       'out': self.out_forces, 'centre': self.location, 'strength': self.strength},
-                     extra_compile_args=['-march=native', '-msse', '-msse2'],
+                     extra_compile_args=['-march=native', '-msse', '-msse2', '-Os'],
                      compiler='gcc')
         return self.on_tick
 
