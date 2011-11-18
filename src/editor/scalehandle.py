@@ -63,7 +63,7 @@ class ScaleHandle(QGraphicsObject):
 
     def boundingRect(self):
         r = self.r
-        return QtCore.QRectF(-r, -r, r * 2, r * 2)
+        return QtCore.QRectF(-r - 2, -r - 2, r * 2 + 4, r * 2 + 4)
 
 
     def paint(self, painter, option, widget=None):
