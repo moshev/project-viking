@@ -16,7 +16,7 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 1000
+NPARTICLES = 100000
 PRINTOVERTIME = False
 
 class sparse_array(object):
@@ -300,19 +300,27 @@ class attractor(object):
         # of each entity and K is self.strength.
         # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
         code = """
-            typedef double v2df __attribute__((vector_size(128)));
+            typedef union vec4 {
+                double v __attribute__((vector_size(16)));
+                double e[2];
+            } v2df;
+            v2df vstrength;
+            vstrength.e[0] = strength;
+            vstrength.e[1] = strength;
             v2df force;
-            double dot;
+            v2df dot;
             v2df *pc, *po, *pl;
             pc = (v2df*)centre;
             po = (v2df*)out;
             pl = (v2df*)locations;
             for (int i = 0; i < len; ++i, ++pl, ++po) {
-                force = *pc - *pl;
-                v2df force2 = force * force;
-                dot = force2[0] + force2[1];
-                dot *= sqrt(dot);
-                *po += (force * strength) / dot;
+                force.v = pc->v - pl->v;
+                v2df force2;
+                force2.v = force.v * force.v;
+                dot.e[0] = force2.e[0] + force2.e[1];
+                dot.e[0] *= sqrt(dot.e[0]);
+                dot.e[1] = dot.e[0];
+                po->v += (force.v * vstrength.v) / dot.v;
             }
         """
 
