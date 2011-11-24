@@ -10,16 +10,25 @@ from util import *
 
 
 
-def apply_friction(friction):
+def apply_friction(gnd, air=0):
+    '''
+    Create a function which will apply the given ground and air friction to an entity.
+    Intended to be added as a physics modifier.
+    Note: the model used will make a physicist cry, but it works ^_^
+    '''
     def friction_on(entity):
         if 'grounded' in entity.tags:
-            if abs(entity.motion.v[0]) > friction:
-                if entity.motion.v[0] > 0:
-                    entity.motion.v[0] -= friction
-                else:
-                    entity.motion.v[0] += friction
+            f = gnd
+        else:
+            f = air
+        if abs(entity.motion.v[0]) > f:
+            if entity.motion.v[0] > 0:
+                entity.motion.v[0] -= f
             else:
-                entity.motion.v[0] = 0
+                entity.motion.v[0] += f
+        else:
+            entity.motion.v[0] = 0
+
     return friction_on
 
 
