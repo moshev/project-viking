@@ -23,31 +23,38 @@ class GuidesGraphicsView(QtGui.QGraphicsView):
 
         p1 = QtCore.QPointF()
         p2 = QtCore.QPointF()
-        p1.setX(rect.left())
-        p2.setX(rect.right())
+        p3 = QtCore.QPointF()
         painter.setPen(self.grid_pen)
         left_grid, right_grid, top_grid, bottom_grid = map(lambda x: int(x) - int(x) % self.spacing,
                                                            (rect.left(), rect.right() + self.spacing,
                                                             rect.top(), rect.bottom() + self.spacing))
 
+        p1.setX(rect.left())
+        p2.setX(rect.right())
+        p3.setX(0)
         for y in range(top_grid, bottom_grid, self.spacing):
             p1.setY(y)
             p2.setY(y)
+            p3.setY(y)
             if y == 0:
                 painter.setPen(self.axes_pen)
-            painter.drawLine(p1, p2)
+            painter.drawLine(p3, p1)
+            painter.drawLine(p3, p2)
             if y == 0:
                 # restore pen
                 painter.setPen(self.grid_pen)
 
         p1.setY(rect.top())
         p2.setY(rect.bottom())
+        p3.setY(0)
         for x in range(left_grid, right_grid, self.spacing):
             p1.setX(x)
             p2.setX(x)
+            p3.setX(x)
             if x == 0:
                 painter.setPen(self.axes_pen)
-            painter.drawLine(p1, p2)
+            painter.drawLine(p3, p1)
+            painter.drawLine(p3, p2)
             if x == 0:
                 # restore pen
                 painter.setPen(self.grid_pen)

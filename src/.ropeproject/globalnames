@@ -1,4 +1,4 @@
-€}q(Ucontrols]q(Umove_while_key_pressedqUjump_when_key_pressedqU
-ControllerqU	animationqUloop_while_keydownqUlooped_animationqUanimation_while_keydownq	UBaseActionStateq
-eUentities]q(UvikingqUsheepqUfloaty_sheepqUdrakeqeUanimatorium]qUAnimatoriumqaUtest_controller]q(UDummyEntityqU
-DummyEventqUAnimationStateAqUActionStateBqUDummyAnimationStateqUTestControllerqUActionStateAqUAnimationStateBqeUutil.basestate]qU	BaseStateqaUphysics]q(Uspeed_limiterqUground_limiterqUapply_frictionq Upassive_passive_collisionsq!Ugravityq"Uregular_physicsq#Uactive_passive_collisionsq$eUproject_viking]q%Umainq&au.
+€}q(Ueditor.scalehandle]qUScaleHandleqaUconfig]q(U	set_prefsqUproject_openedqeUcontrols]q(Umove_while_key_pressedqUjump_when_key_pressedq	U
+Controllerq
+U	animationqUloop_while_keydownqUlooped_animationqUanimation_while_keydownqUBaseActionStateqeUentities]q(UvikingqUfloaty_sheepqUdrakeqUsheepqeUanimatorium]qUAnimatoriumqaUtest_controller]q(UDummyEntityqU
+DummyEventqUAnimationStateAqUActionStateBqUDummyAnimationStateqUTestControllerqUActionStateAqUAnimationStateBqeUeditor.level_editor]q (Uleveleditor_mainq!UMainq"eUutil.basestate]q#U	BaseStateq$aUphysics]q%(Uspeed_limiterq&Uground_limiterq'Uapply_frictionq(Upassive_passive_collisionsq)Ugravityq*Uregular_physicsq+Uactive_passive_collisionsq,eUproject_viking]q-Umainq.au.

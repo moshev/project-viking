@@ -26,7 +26,7 @@ def viking(datadir, clock, keyboard, key_left, key_right, key_jump, key_punch):
                                graphics=components.graphics(None, None))
 
     physics.regular_physics(player)
-    player.physics.add(physics.apply_friction(0.5), components.physics.GROUP_VELOCITY)
+    player.physics.add(physics.apply_friction(2.0, 1.0), components.physics.GROUP_VELOCITY)
     player.physics.add(physics.speed_limiter((10, 10000)), components.physics.GROUP_VELOCITY)
 
     player.controller = controls.Controller(player, viking_parts.IdleRight, viking_parts.IdleRightAnimation,

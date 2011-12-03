@@ -15,6 +15,21 @@ from itertools import repeat, izip
 from pyglet import gl
 
 
+def iapply(func, *iterables):
+    '''iapply(func, p, q, ...):
+    calls func(p[0], q[0], ...)
+    until the shortest iterable is exhausted.
+    Like reduce without collecting the results.'''
+    if len(iterables) == 0:
+        return
+
+    if not callable(func):
+        raise ValueError('{0} is not a callable'.format(func))
+
+    for args in izip(*iterables):
+        func(*args)
+
+
 def repeat_each(items, repeats):
     '''Iterate items, repeatedly yielding each item the corresponding times.'''
     for i, r in izip(items, repeats):
