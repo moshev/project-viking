@@ -145,7 +145,6 @@ class JumpFacingRight(controls.BaseActionState):
         self.__reset__()
 
     def __reset__(self):
-        self.ticks = 0
         self.valid = False
 
 
@@ -153,11 +152,10 @@ class JumpFacingRight(controls.BaseActionState):
         if not self.valid:
             self.valid = 'grounded' in entity.tags
 
-        if not self.valid or self.ticks > JUMP_TICKS:
+        if not self.valid:
             return self.next('jump_release')
 
         entity.motion.a[1] += JUMP_SPEED
-        self.ticks += 1
 
 
     def __transitions__(self):
@@ -173,7 +171,6 @@ class JumpFacingLeft(controls.BaseActionState):
         self.__reset__()
 
     def __reset__(self):
-        self.ticks = 0
         self.valid = False
 
 
@@ -181,11 +178,10 @@ class JumpFacingLeft(controls.BaseActionState):
         if not self.valid:
             self.valid = 'grounded' in entity.tags
 
-        if not self.valid or self.ticks > JUMP_TICKS:
+        if not self.valid:
             return self.next('jump_release')
 
         entity.motion.a[1] += JUMP_SPEED
-        self.ticks += 1
 
 
     def __transitions__(self):
@@ -351,30 +347,36 @@ class JumpAnimation(BaseAnimation):
         super(JumpAnimation, self).__init__()
         self._next_transition = None
         self._iter = None
-        delays = [3, 15, 18, 20]
-        frames = util.load_frame_sequence(util.find_datadir(), 'jump', 4)
+        delays = [3, 1]
+        frames = util.load_frame_sequence(util.find_datadir(), 'jump', 2)
         if (flipped):
             frames = map(util.flip_frame, frames)
         self.__frames__ = list(util.repeat_each(frames, delays))
 
 
-    def next(self, event):
-        if event is not None:
-            self._next_transition = super(JumpAnimation, self).next(event)
-            return self
-        else:
-            next = self._next_transition or super(JumpAnimation, self).next(None)
-            self._next_transition = super(JumpAnimation, self).next(None)
-            self._iter = None
-            return next
-
+#    def next(self, event):
+#        if event is not None:
+#            self._next_transition = super(JumpAnimation, self).next(event)
+#            return self
+#        else:
+#            next = self._next_transition or super(JumpAnimation, self).next(None)
+#            self._next_transition = super(JumpAnimation, self).next(None)
+#            self._iter = None
+#            return next
+#
+#
+#    def __iter__(self):
+#        if self._iter is None:
+#            self._iter = super(JumpAnimation, self).__iter__()
+#
+#        return self._iter
 
     def __iter__(self):
-        if self._iter is None:
-            self._iter = super(JumpAnimation, self).__iter__()
-
-        return self._iter
-
+        for frame in self.__frames__:
+            yield frame
+            
+        while True:
+            yield self.__frames__[-1]
 
 class JumpRightAnimation(JumpAnimation):
     def __init__(self):
