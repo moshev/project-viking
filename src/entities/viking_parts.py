@@ -82,26 +82,43 @@ class WalkLeft(controls.BaseActionState):
                 'punch_press': PunchLeftWalking}
 
 
-class JumpRight(controls.BaseActionState):
-    """Jump right."""
-    def __init__(self):
-        super(JumpRight, self).__init__('jump_right')
+class BaseJumpState(controls.BaseActionState):
+    """Base jump."""
+    def __init__(self, name, horz_speed):
+        super(BaseJumpState, self).__init__(name)
+        self.da = util.arrayify((horz_speed, 0.0))
         self.__reset__()
+
 
     def __reset__(self):
         self.ticks = 0
-        self.valid = False
+        self.da[1] = JUMP_SPEED
+        self.last_grounded = True
 
 
     def on_tick(self, entity):
-        if not self.valid:
-            self.valid = 'grounded' in entity.tags
+        grounded = 'grounded' in entity.tags
+        last_grounded = self.last_grounded
 
-        if not self.valid or self.ticks > JUMP_TICKS:
+        if (self.ticks == 0 and not grounded) or (grounded and not last_grounded):
             return self.next('jump_release')
 
-        entity.motion.a += (WALK_SPEED, JUMP_SPEED)
-        self.ticks += 1
+        self.last_grounded = grounded
+
+        da = self.da
+        if self.ticks > JUMP_TICKS:
+            da[1] = 0.0
+        else:
+            self.ticks += 1
+
+        entity.motion.a += da
+
+
+class JumpRight(BaseJumpState):
+    """Jump right."""
+    def __init__(self):
+        super(JumpRight, self).__init__('jump_right', WALK_SPEED)
+        self.__reset__()
 
 
     def __transitions__(self):
@@ -110,26 +127,10 @@ class JumpRight(controls.BaseActionState):
                 'left_press': WalkLeft}
 
 
-class JumpLeft(controls.BaseActionState):
+class JumpLeft(BaseJumpState):
     """Jump left."""
     def __init__(self):
-        super(JumpLeft, self).__init__('jump_left')
-        self.__reset__()
-
-    def __reset__(self):
-        self.ticks = 0
-        self.valid = False
-
-
-    def on_tick(self, entity):
-        if not self.valid:
-            self.valid = 'grounded' in entity.tags
-
-        if not self.valid or self.ticks > JUMP_TICKS:
-            return self.next('jump_release')
-
-        entity.motion.a += (-WALK_SPEED, JUMP_SPEED)
-        self.ticks += 1
+        super(JumpLeft, self).__init__('jump_left', -WALK_SPEED)
 
 
     def __transitions__(self):
@@ -138,24 +139,11 @@ class JumpLeft(controls.BaseActionState):
                 'right_press': WalkRight}
 
 
-class JumpFacingRight(controls.BaseActionState):
+class JumpFacingRight(BaseJumpState):
     """Right-facing jump in place."""
     def __init__(self):
-        super(JumpFacingRight, self).__init__('jump_facing_right')
+        super(JumpFacingRight, self).__init__('jump_facing_right', 0)
         self.__reset__()
-
-    def __reset__(self):
-        self.valid = False
-
-
-    def on_tick(self, entity):
-        if not self.valid:
-            self.valid = 'grounded' in entity.tags
-
-        if not self.valid:
-            return self.next('jump_release')
-
-        entity.motion.a[1] += JUMP_SPEED
 
 
     def __transitions__(self):
@@ -164,24 +152,11 @@ class JumpFacingRight(controls.BaseActionState):
                 'right_press': WalkRight}
 
 
-class JumpFacingLeft(controls.BaseActionState):
+class JumpFacingLeft(BaseJumpState):
     """Left-facing jump in place."""
     def __init__(self):
-        super(JumpFacingLeft, self).__init__('jump_facing_left')
+        super(JumpFacingLeft, self).__init__('jump_facing_left', 0)
         self.__reset__()
-
-    def __reset__(self):
-        self.valid = False
-
-
-    def on_tick(self, entity):
-        if not self.valid:
-            self.valid = 'grounded' in entity.tags
-
-        if not self.valid:
-            return self.next('jump_release')
-
-        entity.motion.a[1] += JUMP_SPEED
 
 
     def __transitions__(self):
@@ -273,7 +248,7 @@ class BaseAnimation(animatorium.BaseAnimationState):
                 'jump_facing_right': JumpFacingRightAnimation,
                 'jump_facing_left': JumpFacingLeftAnimation,
                 'punch_right': PunchRightAnimation,
-                'punch_left': PunchLeftAnimation,}
+                'punch_left': PunchLeftAnimation, }
 
 
 class OneFrameLoopedAnimation(BaseAnimation):
@@ -374,7 +349,7 @@ class JumpAnimation(BaseAnimation):
     def __iter__(self):
         for frame in self.__frames__:
             yield frame
-            
+
         while True:
             yield self.__frames__[-1]
 
