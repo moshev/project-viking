@@ -172,7 +172,7 @@ def main(level_file):
         vertices = numpy.empty((4, 2), dtype=numpy.float32)
         texcoords = numpy.empty((4, 2), dtype=numpy.float32)
         texid = [0] * len(entities)
-        with (entitybuf.bound):
+        with entitybuf.bound:
             for n, thing in enumerate(entities):
                 vertices[:] = thing.graphics.sprite.quad
                 vertices += thing.graphics.anchor
@@ -185,7 +185,8 @@ def main(level_file):
                 texid[n] = thing.graphics.sprite.texid
 
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
-            gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, len(entities) * 8 * 4)
+            gl.glTexCoordPointer(2, gl.GL_FLOAT, 0,
+                                 len(entities) * 8 * entitybuf.dtype.itemsize)
 
             for n, t in enumerate(texid):
                 gl.glBindTexture(gl.GL_TEXTURE_2D, t)
