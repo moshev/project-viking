@@ -63,6 +63,22 @@ def main(level_file):
     else:
         walls = level.load(level_file)
 
+    # vertex positions for walls
+    quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
+    quads[:,0,:] = [w.point for w in walls]
+    quads[:,2,:] = [w.size for w in walls]
+    quads[:,2,:] += quads[:,0,:]
+    quads[:,1,0] = quads[:,0,0]
+    quads[:,1,1] = quads[:,2,1]
+    quads[:,3,0] = quads[:,2,0]
+    quads[:,3,1] = quads[:,0,1]
+    wallbuf = GLBuffer(quads.size, numpy.float32, gl.GL_STATIC_DRAW)
+    wallbuf[:] = quads
+    del quads
+
+    # contains vertex and texture positions for sprites
+    entitybuf = GLBuffer(dtype=numpy.float32)
+
     debug_draw = False
     pause = False
     do_frame = False
@@ -124,6 +140,7 @@ def main(level_file):
 
         dead = []
 
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glLoadIdentity()
         gl.glBindTexture(gl.GL_TEXTURE_2D, background.texid)
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
@@ -154,32 +171,33 @@ def main(level_file):
 
         vertices = numpy.empty((4, 2), dtype=numpy.float32)
         texcoords = numpy.empty((4, 2), dtype=numpy.float32)
-        ptr = vertices.ctypes.data
-        gl.glVertexPointer(2, gl.GL_FLOAT, 0, vertices.ctypes.data)
-        gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, texcoords.ctypes.data)
+        texid = [0] * len(entities)
+        with (entitybuf.bound):
+            for n, thing in enumerate(entities):
+                vertices[:] = thing.graphics.sprite.quad
+                vertices += thing.graphics.anchor
+                vertices += thing.location
+                texcoords[:] = thing.graphics.sprite.texcoords
+                voffset = n * 8
+                toffset = len(entities) * 8 + n * 8
+                entitybuf[voffset:] = vertices
+                entitybuf[toffset:] = texcoords
+                texid[n] = thing.graphics.sprite.texid
 
-        for thing in entities:
-            vertices[:] = thing.graphics.sprite.quad
-            vertices += thing.graphics.anchor
-            vertices += thing.location
-            texcoords[:] = thing.graphics.sprite.texcoords
-            gl.glBindTexture(gl.GL_TEXTURE_2D, thing.graphics.sprite.texid)
-            gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+            gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
+            gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, len(entities) * 8 * 4)
+
+            for n, t in enumerate(texid):
+                gl.glBindTexture(gl.GL_TEXTURE_2D, t)
+                gl.glDrawArrays(gl.GL_TRIANGLE_FAN, n * 4, 4)
 
         # draw walls
         gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glDisable(gl.GL_TEXTURE_2D)
-        quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
-        quads[:,0,:] = [w.point for w in walls]
-        quads[:,2,:] = [w.size for w in walls]
-        quads[:,2,:] += quads[:,0,:]
-        quads[:,1,0] = quads[:,0,0]
-        quads[:,1,1] = quads[:,2,1]
-        quads[:,3,0] = quads[:,2,0]
-        quads[:,3,1] = quads[:,0,1]
         gl.glColor3f(0, 0, 0.89)
-        gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
-        gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
+        with wallbuf.bound:
+            gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
+            gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
 
         if debug_draw:
             gl.glColor3f(0.89, 0.89, 0.89)
