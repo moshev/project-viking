@@ -23,6 +23,30 @@ import collisions
 import constants
 
 
+BRICK_VS_SRC = r'''
+#version 120
+
+varying vec2 p;
+
+void main() {
+    vec4 pos = gl_ModelviewProjectionMatrix * gl_Vertex;
+    p = pos.xy;
+    gl_Position = pos;
+}
+'''
+
+
+BRICK_FS_SRC = r'''
+#version 120
+
+varying vec2 p;
+
+void main() {
+    gl_FragColor = vec4(0.0, 0.0, 0.89, 1.0);
+}
+'''
+
+
 def main(level_file):
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
