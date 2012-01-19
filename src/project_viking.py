@@ -29,7 +29,7 @@ BRICK_VS_SRC = r'''
 varying vec2 p;
 
 void main() {
-    vec4 pos = gl_ModelviewProjectionMatrix * gl_Vertex;
+    vec4 pos = gl_ModelViewProjectionMatrix * gl_Vertex;
     p = pos.xy;
     gl_Position = pos;
 }
@@ -103,6 +103,10 @@ def main(level_file):
     # contains vertex and texture positions for sprites
     entitybuf = GLBuffer(dtype=numpy.float32)
 
+    # walls program
+    wallprog = program(vertex_shader(BRICK_VS_SRC),
+                       fragment_shader(BRICK_FS_SRC))
+
     debug_draw = False
     pause = False
     do_frame = False
@@ -164,6 +168,7 @@ def main(level_file):
 
         dead = []
 
+        gl.glUseProgram(0)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glLoadIdentity()
         gl.glBindTexture(gl.GL_TEXTURE_2D, background.texid)
@@ -219,7 +224,7 @@ def main(level_file):
         # draw walls
         gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glDisable(gl.GL_TEXTURE_2D)
-        gl.glColor3f(0, 0, 0.89)
+        gl.glUseProgram(wallprog)
         with wallbuf.bound:
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
