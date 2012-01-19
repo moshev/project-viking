@@ -27,7 +27,7 @@ BRICK_VS_SRC = r'''
 #version 120
 
 varying vec2 p;
-const vec2 scaling_factor = vec2(0.04, 0.08);
+const vec2 scaling_factor = vec2(0.04, 0.06);
 
 void main() {
     p = gl_Vertex.xy * scaling_factor;
@@ -41,10 +41,9 @@ BRICK_FS_SRC = r'''
 #version 120
 
 varying vec2 p;
-const vec4 base_color = vec4(0.89, 0.0, 0.0, 1.0);
 
 float poly(float x) {
-    float y = (x * (x - 0.45) * (x - 0.55) * (x - 1.0)) / (0.5 * (0.5 - 0.45) * (0.5 - 0.55) * (0.5 - 1.0));
+    float y = ((x - 0.45) * (x - 0.55)) / ((0.5 - 0.45) * (0.5 - 0.55));
     return clamp(y, 0.0, 1.0);
 }
 
@@ -55,7 +54,7 @@ void main() {
     x = poly(x);
     y = poly(y);
     float white = clamp(x + y, 0.0, 1.0);
-    gl_FragColor = vec4(0.0, white, white, 1.0) + base_color;
+    gl_FragColor = vec4(0.89, white, white, 1.0);
 }
 '''
 
