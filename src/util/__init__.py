@@ -4,5 +4,6 @@ from __future__ import absolute_import, division, generators, print_function, wi
 from .generic import *
 from .sprite import *
 from .glbuffer import *
+from .glshader import *
 from . import basestate
 
