@@ -41,20 +41,31 @@ BRICK_FS_SRC = r'''
 #version 120
 
 varying vec2 p;
+const vec4 base_color = vec4(0.89, 0.0, 0.0, 1.0);
+const vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
+const float xfactor = 0.06 / 0.04;
 
-float poly(float x) {
-    float y = ((x - 0.45) * (x - 0.55)) / ((0.5 - 0.45) * (0.5 - 0.55));
+float poly(float x, float mid, float w) {
+    float x1 = mid - w * 0.5;
+    float x2 = mid + w * 0.5;
+    float a = 1.5 / ((x1 - mid) * (x2 - mid));
+    float y = a * (x - x1) * (x - x2);
     return clamp(y, 0.0, 1.0);
+}
+
+// return x within [0, max]
+float roll(float x, float max) {
+    return fract(x / max) * max;
 }
 
 void main() {
     // twiddle x every second row
-    float x = fract(p.x + fract(floor(p.y - 0.5) * 0.5));
+    float x = fract(p.x + fract(floor(p.y - 0.5) * 0.5)) * xfactor;
     float y = fract(p.y);
-    x = poly(x);
-    y = poly(y);
-    float white = clamp(x + y, 0.0, 1.0);
-    gl_FragColor = vec4(0.89, white, white, 1.0);
+    x = poly(x, xfactor * 0.5, 0.16);
+    y = poly(y, 0.5, 0.16);
+    float alpha = clamp(x + y, 0.0, 1.0);
+    gl_FragColor = mix(base_color, white, alpha);
 }
 '''
 
