@@ -23,7 +23,7 @@ import collisions
 import constants
 
 
-BRICK_VS_SRC = r'''
+DIRT_VS_SRC = r'''
 #version 120
 
 varying vec2 p;
@@ -37,7 +37,7 @@ void main() {
 '''
 
 
-BRICK_FS_SRC = r'''
+DIRT_FS_SRC = r'''
 #version 120
 
 varying vec2 p;
@@ -45,27 +45,31 @@ const vec4 base_color = vec4(0.89, 0.0, 0.0, 1.0);
 const vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 const float xfactor = 0.06 / 0.04;
 
-float poly(float x, float mid, float w) {
-    float x1 = mid - w * 0.5;
-    float x2 = mid + w * 0.5;
-    float a = 1.5 / ((x1 - mid) * (x2 - mid));
-    float y = a * (x - x1) * (x - x2);
-    return clamp(y, 0.0, 1.0);
+float poly2(float x) {
+    return x * (abs(x) -1.0) * 2.0 + 0.5;
 }
 
-// return x within [0, max]
-float roll(float x, float max) {
-    return fract(x / max) * max;
+float poly3(float x) {
+    float invmaxhalf = 0.5 / 0.5773502691896;
+    float y = 0.5 + (x + 1) * x * (x - 1) * invmaxhalf;
+    return y;
+}
+
+// return x within (-1, 1)
+// for x = 0 returns 1.0
+// for x = 0.5 returns 0
+float roll(float x) {
+    return (0.5 - fract(x)) * 2.0;
 }
 
 void main() {
     // twiddle x every second row
-    float x = fract(p.x + fract(floor(p.y - 0.5) * 0.5)) * xfactor;
-    float y = fract(p.y);
-    x = poly(x, xfactor * 0.5, 0.16);
-    y = poly(y, 0.5, 0.16);
-    float alpha = clamp(x + y, 0.0, 1.0);
-    gl_FragColor = mix(base_color, white, alpha);
+    float x1 = roll(p.x);
+    float x2 = roll(p.y);
+    float x3 = roll(p.x + p.y);
+    float x4 = roll(0.7 * p.x + 0.714143 * p.y);
+    float a = (poly2(x1) * poly2(x3) + poly2(x2) * poly2(x4)) * 0.5;
+    gl_FragColor = vec4(a, a, a, 1.0);
 }
 '''
 
@@ -127,8 +131,8 @@ def main(level_file):
     entitybuf = GLBuffer(dtype=numpy.float32)
 
     # walls program
-    wallprog = program(vertex_shader(BRICK_VS_SRC),
-                       fragment_shader(BRICK_FS_SRC))
+    wallprog = program(vertex_shader(DIRT_VS_SRC),
+                       fragment_shader(DIRT_FS_SRC))
 
     debug_draw = False
     pause = False
