@@ -17,6 +17,7 @@ from pyglet import gl
 
 __all__ = [
     'Sprite',
+    'load_texture',
     'load_sprite',
     'load_frame',
     'load_frame_sequence',
@@ -81,6 +82,14 @@ class Sprite(object):
         return self.data.quad
 
 
+def load_texture(filename, dimensions=2):
+    ''' Loads a texture and returns its id.
+    filename - file to open
+    dimensions - how many dimensions the texture has. 1, 2 or 3. '''
+    tex_img = pygame.image.load(filename)
+    return texture_from_image(tex_img, dimensions=dimensions)
+
+
 def load_sprite(dir, name):
     '''
     Loads a sprite object with an image set to dir/name
@@ -139,7 +148,7 @@ def flip_frame(frame):
     frame_cache[flipped_name] = newframe
     return newframe
 
-def texture_from_image(image, internalformat=None):
+def texture_from_image(image, internalformat=None, dimensions=2):
     '''Create and return a new texture id and initialize its data with the given image.
     image - a pygame Surface.
     internalformat - the texture's internal format; if None (the default) will be set to an appropriate one.'''
@@ -158,22 +167,28 @@ def texture_from_image(image, internalformat=None):
     else:
         return None
 
+    binding = gl.__dict__['GL_TEXTURE_BINDING_{:d}D'.format(dimensions)]
+    target = gl.__dict__['GL_TEXTURE_{:d}D'.format(dimensions)]
+    texImage = gl.__dict__['glTexImage{:d}D'.format(dimensions)]
     oldbind = ctypes.c_uint(0)
-    gl.glGetIntegerv(gl.GL_TEXTURE_BINDING_2D, ctypes.cast(ctypes.byref(oldbind), ctypes.POINTER(ctypes.c_int)))
+    gl.glGetIntegerv(binding, ctypes.cast(ctypes.byref(oldbind), ctypes.POINTER(ctypes.c_int)))
     texid = ctypes.c_uint(0)
-    gl.glEnable(gl.GL_TEXTURE_2D)
+    gl.glEnable(target)
     gl.glGenTextures(1, ctypes.byref(texid))
-    gl.glBindTexture(gl.GL_TEXTURE_2D, texid)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+    gl.glBindTexture(target, texid)
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
 
     if image.get_bytesize() == 3:
         pixels = pygame.surfarray.pixels3d(image)
     else:
         pixels = pygame.surfarray.pixels2d(image)
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, internalformat, image.get_width(), image.get_height(),
-                    0, _format, _type, pixels.ctypes.data)
-    gl.glBindTexture(gl.GL_TEXTURE_2D, oldbind)
+
+    imagesize = [image.get_width(), image.get_height(), 0][:dimensions]
+    args = [target, 0, internalformat] + imagesize + [0, _format, _type, pixels.ctypes.data]
+
+    texImage(*args)
+    gl.glBindTexture(target, oldbind)
     return texid
 
 
