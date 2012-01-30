@@ -1,4 +1,5 @@
-from __future__ import print_function, absolute_import
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, generators, print_function, with_statement
 
 import itertools
 import math
@@ -27,7 +28,7 @@ DIRT_VS_SRC = r'''
 #version 120
 
 varying vec2 p;
-const vec2 scaling_factor = vec2(0.04, 0.06);
+const vec2 scaling_factor = vec2(0.08, 0.12);
 
 void main() {
     p = gl_Vertex.xy * scaling_factor;
@@ -41,6 +42,8 @@ DIRT_FS_SRC = r'''
 #version 120
 
 uniform sampler1D palette;
+
+uniform float perturb = 0.0;
 
 varying vec2 p;
 
@@ -94,14 +97,14 @@ void main() {
     float y[N];
     float z[N];
     for (int i = 0; i < N; i++) {
-        y[i] = poly2(x[i]);
+        y[i] = poly1(x[i]);
     }
 
     //float x3 = roll(-0.714143 * p.x + 0.7 * p.y);
     //float x4 = roll(0.7 * p.x + 0.714143 * p.y);
     float a = (y[0] + y[1] + y[2] + y[3]) * 0.15 + y[4] * y[5] * 0.85;
     //a *= poly3(x[2]) * poly3(x[3]);
-    gl_FragColor = texture1D(palette, a);
+    gl_FragColor = texture1D(palette, fract(a + perturb));
 }
 '''
 
@@ -166,11 +169,13 @@ def main(level_file):
     wallprog = program(vertex_shader(DIRT_VS_SRC),
                        fragment_shader(DIRT_FS_SRC))
     wallprog_palette = gl.glGetUniformLocation(wallprog, 'palette')
+    wallprog_perturb = gl.glGetUniformLocation(wallprog, 'perturb')
     walltex = load_texture(os.path.join(datadir, 'wallpalette.png'), dimensions=1)
 
     debug_draw = False
     pause = False
     do_frame = False
+    ticks_done = 0
     while True:
         start = time.clock()
 
@@ -287,9 +292,11 @@ def main(level_file):
         gl.glUseProgram(wallprog)
         gl.glBindTexture(gl.GL_TEXTURE_1D, walltex)
         gl.glUniform1i(wallprog_palette, 0)
+        gl.glUniform1f(wallprog_perturb, (ticks_done % 1024) / 64)
         with wallbuf.bound:
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
+        gl.glUseProgram(0)
 
         if debug_draw:
             gl.glColor3f(0.89, 0.89, 0.89)
@@ -317,6 +324,7 @@ def main(level_file):
         delta = time.clock() - start
         if delta < constants.FRAME:
             time.sleep(constants.FRAME - delta)
+        ticks_done += 1
 
 if __name__ == '__main__':
     # ask for a level file...
