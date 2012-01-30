@@ -176,8 +176,8 @@ def texture_from_image(image, internalformat=None, dimensions=2):
     gl.glEnable(target)
     gl.glGenTextures(1, ctypes.byref(texid))
     gl.glBindTexture(target, texid)
-    gl.glTexParameteri(target, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-    gl.glTexParameteri(target, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
 
     if image.get_bytesize() == 3:
         pixels = pygame.surfarray.pixels3d(image)
