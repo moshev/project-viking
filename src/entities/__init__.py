@@ -6,6 +6,7 @@ import components
 import controls
 import physics
 import util
+from . import shaders
 from pygame.constants import KEYDOWN, KEYUP
 
 
