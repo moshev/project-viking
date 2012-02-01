@@ -8,10 +8,47 @@ import pyglet.gl
 from pyglet import gl
 
 
-__all__ = ['vertex_shader', 'fragment_shader', 'program']
+__all__ = ['GLProgram']
+
+
+class GLProgram(object):
+    def __init__(self, vertex_shader_src, fragment_shader_src):
+        vsid = vertex_shader(vertex_shader_src)
+        fsid = fragment_shader(fragment_shader_src)
+        pid = program(vsid, fsid)
+        self.vs = vsid
+        self.fs = fsid
+        self.program = pid
+        self.uniforms = dict()
+
+    def __setitem__(self, uniform, value):
+        try:
+            uid = self.uniforms[uniform]
+        except KeyError:
+            uid = gl.glGetUniformLocation(self.program, uniform)
+            if uid == -1:
+                raise NoSuchUniformError(uniform)
+            self.uniforms[uniform] = uid
+
+        if isinstance(value, (int, ctypes.c_int)):
+            setter = gl.glUniform1i
+        elif isinstance(value, (float, ctypes.c_float, ctypes.c_double)):
+            setter = gl.glUniform1f
+        else:
+            raise TypeError('Cannot use a {} to set uniform {}'.format(value.__class__,
+                                                                       uniform))
+        setter(uid, value)
+
+    @property
+    def id(self):
+        return self.program
 
 
 LP_c_char = POINTER(c_char)
+
+
+class NoSuchUniformError(Exception):
+    pass
 
 
 class ShaderCompileError(Exception):
