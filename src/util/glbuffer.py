@@ -134,4 +134,3 @@ class GLBuffer(object):
                 sz = min((stop - start), len(a))
                 gl.glBufferSubData(gl.GL_ARRAY_BUFFER, start * self.dtype.itemsize,
                                    sz * self.dtype.itemsize, a.ctypes.data)
-

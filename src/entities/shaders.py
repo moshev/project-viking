@@ -92,7 +92,55 @@ void main() {
 }
 '''
 
-
 psycho = lambda: util.GLProgram(_PSYCHO_VS_SRC, _PSYCHO_FS_SRC)
 
 
+_WALL_VS_SRC = r'''
+#version 120
+
+attribute vec2 p;
+
+void main() {
+    gl_Position = gl_ModelViewProjectionMatrix * vec4(p, 0.0, 1.0);
+}
+'''
+
+_WALL_FS_SRC = r'''
+#version 120
+
+uniform vec4 color = vec4(0.0, 0.0, 0.89, 1.0);
+
+void main() {
+    gl_FragColor = color;
+}
+'''
+
+wall = lambda: util.GLProgram(_WALL_VS_SRC, _WALL_FS_SRC)
+
+
+_SPRITE_VS_SRC = r'''
+#version 120
+
+attribute vec4 data;
+
+varying vec2 texcoord;
+
+void main() {
+    gl_Position = gl_ModelViewProjectionMatrix * vec4(data.xy, 0.0, 1.0);
+    texcoord = data.zw;
+}
+'''
+
+_SPRITE_FS_SRC = r'''
+#version 120
+
+uniform sampler2D texture;
+
+varying vec2 texcoord;
+
+void main() {
+    gl_FragColor = texture2D(texture, texcoord);
+}
+'''
+
+sprite = lambda: util.GLProgram(_SPRITE_VS_SRC, _SPRITE_FS_SRC);

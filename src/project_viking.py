@@ -57,6 +57,8 @@ def main(level_file):
     entities = [player1, player2]
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
     background = load_sprite(datadir, 'background')
+    backgroundbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
+    backgroundbuf[:] = numpy.concatenate((background.quad, background.texcoords), axis=1)
     if level_file is None:
         walls = [components.hitbox((-5, -5), (10, 610)),
                  components.hitbox((995, -5), (10, 610)),
@@ -81,8 +83,10 @@ def main(level_file):
     entitybuf = GLBuffer(dtype=numpy.float32)
 
     # walls program
-    wallprog = shaders.psycho()
+    wallprog = shaders.wall()
     walltex = load_texture(os.path.join(datadir, 'wallpalette.png'), dimensions=1)
+
+    spriteprog = shaders.sprite()
 
     debug_draw = False
     pause = False
@@ -146,15 +150,15 @@ def main(level_file):
 
         dead = []
 
-        gl.glUseProgram(0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glLoadIdentity()
+        gl.glEnableVertexAttribArray(0)
+        gl.glUseProgram(spriteprog.id)
         gl.glBindTexture(gl.GL_TEXTURE_2D, background.texid)
-        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
-        gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
-        gl.glVertexPointer(2, gl.GL_FLOAT, 0, background.quad.ctypes.data)
-        gl.glTexCoordPointer(2, gl.GL_FLOAT, 0, background.texcoords.ctypes.data)
-        gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+        spriteprog['texture'] = 0
+
+        with backgroundbuf.bound:
+            gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         # Now move camera
         gl.glTranslated(500 - entities[0].location[0],
@@ -185,32 +189,28 @@ def main(level_file):
                 vertices += thing.graphics.anchor
                 vertices += thing.location
                 texcoords[:] = thing.graphics.sprite.texcoords
-                voffset = n * 8
-                toffset = len(entities) * 8 + n * 8
-                entitybuf[voffset:] = vertices
-                entitybuf[toffset:] = texcoords
+                offset = n * 16
+                entitybuf[offset:] = numpy.concatenate((vertices, texcoords), axis=1)
                 texid[n] = thing.graphics.sprite.texid
 
-            gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
-            gl.glTexCoordPointer(2, gl.GL_FLOAT, 0,
-                                 len(entities) * 8 * entitybuf.dtype.itemsize)
+            gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
 
             for n, t in enumerate(texid):
                 gl.glBindTexture(gl.GL_TEXTURE_2D, t)
                 gl.glDrawArrays(gl.GL_TRIANGLE_FAN, n * 4, 4)
 
         # draw walls
-        gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glUseProgram(wallprog.id)
         gl.glBindTexture(gl.GL_TEXTURE_1D, walltex)
-        wallprog['palette'] = 0
-        wallprog['perturb'] = (ticks_done % 1024) / 64
+        #wallprog['palette'] = 0
+        #wallprog['perturb'] = (ticks_done % 1024) / 64
         with wallbuf.bound:
-            gl.glVertexPointer(2, gl.GL_FLOAT, 0, 0)
+            gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
-        gl.glUseProgram(0)
 
         if debug_draw:
+            gl.glUseProgram(0)
+            gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
             gl.glColor3f(0.89, 0.89, 0.89)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
             quads[:,0,:] = [thing.location + thing.hitbox_passive.point
@@ -226,7 +226,6 @@ def main(level_file):
 
         gl.glColor3f(1, 1, 1)
         gl.glEnable(gl.GL_TEXTURE_2D)
-        gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
 
         #screen.fill((120, 50, 50), pygame.Rect(0, 10, player1.hitpoints * 2, 10))
         #screen.fill((120, 50, 50), pygame.Rect(1000 - player2.hitpoints * 2, 10, player2.hitpoints * 2, 10))
@@ -253,5 +252,3 @@ if __name__ == '__main__':
             level_file = None
     main(level_file)
     pygame.quit()
-
-
