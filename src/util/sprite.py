@@ -167,9 +167,9 @@ def texture_from_image(image, internalformat=None, dimensions=2):
     else:
         return None
 
-    binding = gl.__dict__['GL_TEXTURE_BINDING_{:d}D'.format(dimensions)]
-    target = gl.__dict__['GL_TEXTURE_{:d}D'.format(dimensions)]
-    texImage = gl.__dict__['glTexImage{:d}D'.format(dimensions)]
+    binding = gl.__dict__['GL_TEXTURE_BINDING_{0:d}D'.format(dimensions)]
+    target = gl.__dict__['GL_TEXTURE_{0:d}D'.format(dimensions)]
+    texImage = gl.__dict__['glTexImage{0:d}D'.format(dimensions)]
     oldbind = ctypes.c_uint(0)
     gl.glGetIntegerv(binding, ctypes.cast(ctypes.byref(oldbind), ctypes.POINTER(ctypes.c_int)))
     texid = ctypes.c_uint(0)
