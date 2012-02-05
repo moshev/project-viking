@@ -62,19 +62,19 @@ def main(level_file):
     if level_file is None:
         walls = [components.hitbox((-5, -5), (10, 610)),
                  components.hitbox((995, -5), (10, 610)),
-                 components.hitbox((-5, 595), (1010, 5)),]
+                 components.hitbox((-5, 595), (1010, 5)), ]
     else:
         walls = level.load(level_file)
 
     # vertex positions for walls
     quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
-    quads[:,0,:] = [w.point for w in walls]
-    quads[:,2,:] = [w.size for w in walls]
-    quads[:,2,:] += quads[:,0,:]
-    quads[:,1,0] = quads[:,0,0]
-    quads[:,1,1] = quads[:,2,1]
-    quads[:,3,0] = quads[:,2,0]
-    quads[:,3,1] = quads[:,0,1]
+    quads[:, 0, :] = [w.point for w in walls]
+    quads[:, 2, :] = [w.size for w in walls]
+    quads[:, 2, :] += quads[:, 0, :]
+    quads[:, 1, 0] = quads[:, 0, 0]
+    quads[:, 1, 1] = quads[:, 2, 1]
+    quads[:, 3, 0] = quads[:, 2, 0]
+    quads[:, 3, 1] = quads[:, 0, 1]
     wallbuf = GLBuffer(quads.size, numpy.float32, gl.GL_STATIC_DRAW)
     wallbuf[:] = quads
     del quads
@@ -88,6 +88,7 @@ def main(level_file):
 
     spriteprog = shaders.sprite()
 
+    psychoprog = shaders.psycho()
     debug_draw = False
     pause = False
     do_frame = False
@@ -202,8 +203,9 @@ def main(level_file):
         # draw walls
         gl.glUseProgram(wallprog.id)
         gl.glBindTexture(gl.GL_TEXTURE_1D, walltex)
-        #wallprog['palette'] = 0
-        #wallprog['perturb'] = (ticks_done % 1024) / 64
+        #psychoprog['palette'] = 0
+        #psychoprog['perturb'] = (ticks_done % 1024) / 128
+        #psychoprog['shift'] = ticks_done / 600
         with wallbuf.bound:
             gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
@@ -213,14 +215,14 @@ def main(level_file):
             gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
             gl.glColor3f(0.89, 0.89, 0.89)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
-            quads[:,0,:] = [thing.location + thing.hitbox_passive.point
+            quads[:, 0, :] = [thing.location + thing.hitbox_passive.point
                             for thing in entities]
-            quads[:,2,:] = [thing.hitbox_passive.size for thing in entities]
-            quads[:,2,:] += quads[:,0,:]
-            quads[:,1,0] = quads[:,0,0]
-            quads[:,1,1] = quads[:,2,1]
-            quads[:,3,0] = quads[:,2,0]
-            quads[:,3,1] = quads[:,0,1]
+            quads[:, 2, :] = [thing.hitbox_passive.size for thing in entities]
+            quads[:, 2, :] += quads[:, 0, :]
+            quads[:, 1, 0] = quads[:, 0, 0]
+            quads[:, 1, 1] = quads[:, 2, 1]
+            quads[:, 3, 0] = quads[:, 2, 0]
+            quads[:, 3, 1] = quads[:, 0, 1]
             gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
             gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
 
