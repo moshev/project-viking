@@ -5,5 +5,5 @@ from .generic import *
 from .sprite import *
 from .glbuffer import *
 from .glshader import *
+from .atlas import *
 from . import basestate
-
