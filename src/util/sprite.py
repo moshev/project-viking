@@ -185,55 +185,56 @@ def empty_texture(size, internalformat=gl.GL_RGBA8):
     return texture_from_data(internalformat, size, _format, _type, zeros.ctypes.data)
 
 
+def format_type_array_from_image(image):
+    '''Returns a tuple (format, type, array) characterising the image data.
+    depending on bits per pixel:
+    format is gl.GL_LUMINANCE/LUMINANCE_ALPHA/RGB/RGBA
+    type is gl.GL_UNSIGNED_INT_8_8_8_8_REV for RGBA and gl.GL_UNSIGNED_BYTE otherwise'''
+
+    sig = image.get_bitsize()
+    if sig == 8:
+        _format = gl.GL_LUMINANCE
+        _type = gl.GL_UNSIGNED_BYTE
+    elif sig == 16:
+        _format = gl.GL_LUMINANCE_ALPHA
+        _type = gl.GL_UNSIGNED_BYTE
+    elif sig == 24:
+        _format = gl.GL_RGB
+        _type = gl.GL_UNSIGNED_BYTE
+    elif sig == 32:
+        _format = gl.GL_RGBA
+        _type = gl.GL_UNSIGNED_INT_8_8_8_8_REV
+    else:
+        raise ValueError('Cannot understand image with bpp', sig)
+
+    if sig == 24:
+        _array = pygame.surfarray.pixels3d(image)
+    else:
+        _array = pygame.surfarray.pixels2d(image)
+
+    return (_format, _type, _array)
+
 def texture_from_image(image, internalformat=None, dimensions=2):
     '''Create and return a new texture id and initialize its data with the given image.
     image - a pygame Surface.
     internalformat - the texture's internal format; if None (the default) will be set to an appropriate one.'''
 
-    sig = image.get_shifts()
-    if sig == (0, 8, 16, 0):
-        _format = gl.GL_RGB
-        _type = gl.GL_UNSIGNED_BYTE
-        if internalformat is None:
-            internalformat = gl.GL_RGB8
-    elif sig == (0, 8, 16, 24):
-        _format = gl.GL_RGBA
-        _type = gl.GL_UNSIGNED_INT_8_8_8_8_REV
-        if internalformat is None:
-            internalformat = gl.GL_RGBA8
-    else:
-        return None
-
-    if image.get_bytesize() == 3:
-        pixels = pygame.surfarray.pixels3d(image)
-    else:
-        pixels = pygame.surfarray.pixels2d(image)
+    format, type, pixels = format_type_array_from_image(image)
+    if internalformat is None:
+        internalformat = format
 
     size = [image.get_width(), image.get_height(), 0][:dimensions]
-    return texture_from_data(internalformat, size, _format, _type, pixels.ctypes.data)
+    return texture_from_data(internalformat, size, format, type, pixels.ctypes.data)
 
 
 def texture_sub_image(texid, place, image, dimensions=2):
     '''Specify a sub-part of a texture with an image.
     place - tuple of coords - the point within the texture of the image's lower-left (see OpenGL) coords'''
 
-    sig = image.get_shifts()
-    if sig == (0, 8, 16, 0):
-        _format = gl.GL_RGB
-        _type = gl.GL_UNSIGNED_BYTE
-    elif sig == (0, 8, 16, 24):
-        _format = gl.GL_RGBA
-        _type = gl.GL_UNSIGNED_INT_8_8_8_8_REV
-    else:
-        raise ValueError('Cannot understand image with shifts', sig)
-
-    if image.get_bytesize() == 3:
-        pixels = pygame.surfarray.pixels3d(image)
-    else:
-        pixels = pygame.surfarray.pixels2d(image)
+    format, type, pixels = format_type_array_from_image(image)
 
     size = [image.get_width(), image.get_height(), 0][:dimensions]
-    texture_sub_data(texid, place, size, _format, _type, pixels.ctypes.data)
+    texture_sub_data(texid, place, size, format, type, pixels.ctypes.data)
 
 
 def texture_from_data(internalformat, size, data_format, data_type, data):
@@ -244,8 +245,8 @@ def texture_from_data(internalformat, size, data_format, data_type, data):
     data_type - see 'type' parameter of glDrawPixels
     data - pointer to memory'''
 
-    dimensions = len(size)
     size = list(size)
+    dimensions = len(size)
     binding = getattr(gl, 'GL_TEXTURE_BINDING_{0:d}D'.format(dimensions))
     target = getattr(gl,'GL_TEXTURE_{0:d}D'.format(dimensions))
     texImage = getattr(gl,'glTexImage{0:d}D'.format(dimensions))

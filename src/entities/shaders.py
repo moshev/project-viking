@@ -11,13 +11,15 @@ import util
 _PSYCHO_VS_SRC = r'''
 #version 120
 
-attribute vec2 data;
+attribute vec4 data;
 varying vec2 p;
+varying vec2 txy;
 const vec2 scaling_factor = vec2(0.07, 0.07);
 
 void main() {
-    p = data * scaling_factor;
-    vec4 pos = gl_ModelViewProjectionMatrix * vec4(data, 0.0, 1.0);
+    p = data.xy * scaling_factor;
+    txy = data.zw;
+    vec4 pos = gl_ModelViewProjectionMatrix * vec4(data.xy, 0.0, 1.0);
     gl_Position = pos;
 }
 '''
@@ -27,11 +29,13 @@ _PSYCHO_FS_SRC = r'''
 #version 120
 
 uniform sampler1D palette;
+uniform sampler2D texture;
 
 uniform float perturb = 0.0;
 uniform float shift = 0.0;
 uniform float w = 0.25;
 varying vec2 p;
+varying vec2 txy;
 
 const vec4 base_color = vec4(0.89, 0.0, 0.0, 1.0);
 const vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
@@ -96,7 +100,7 @@ void main() {
     //float a = (y[0] + y[1] + y[2] + y[3]) * 0.15 + y[4] * y[5] * 0.85;
     float a = y[4] * y[5] * 0.85 + (y[3] + y[1]) * 0.075;
     //a *= poly3(x[2]) * poly3(x[3]);
-    gl_FragColor = texture1D(palette, abs(w - 2.0 * w * fract(a + perturb)) + s);
+    gl_FragColor = texture1D(palette, abs(w - 2.0 * w * fract(a + perturb)) + s) * texture2D(texture, txy);
 }
 '''
 

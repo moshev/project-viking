@@ -90,11 +90,15 @@ def main(level_file):
 
     # walls program
     wallprog = shaders.wall()
-    walltex = load_texture(os.path.join(datadir, 'wallpalette.png'), dimensions=1)
 
     spriteprog = shaders.sprite()
 
-    psychoprog = shaders.psycho()
+    dragonprog = shaders.psycho()
+    dragonpalette = load_texture(os.path.join(datadir, 'wallpalette.png'), dimensions=1)
+    dragonsprite = load_sprite(datadir, 'dragon')
+    dragonbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
+    dragonbuf[:] = dragonsprite.xyuv
+
     debug_draw = False
     pause = False
     do_frame = False
@@ -218,13 +222,24 @@ def main(level_file):
 
         # draw walls
         gl.glUseProgram(wallprog.id)
-        gl.glBindTexture(gl.GL_TEXTURE_1D, walltex)
-        #psychoprog['palette'] = 0
-        #psychoprog['perturb'] = (ticks_done % 1024) / 128
-        #psychoprog['shift'] = ticks_done / 600
         with wallbuf.bound:
             gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
+
+        # draw the fuckin' dragon
+        gl.glUseProgram(dragonprog.id)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, dragonsprite.texid)
+        gl.glActiveTexture(gl.GL_TEXTURE0 + 1)
+        gl.glBindTexture(gl.GL_TEXTURE_1D, dragonpalette)
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        dragonprog['texture'] = 0
+        dragonprog['palette'] = 1
+        dragonprog['perturb'] = (ticks_done % 1024) / 128
+        dragonprog['shift'] = ticks_done / 600
+        gl.glTranslated(-100, -50, 0)
+        with dragonbuf.bound:
+            gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         if debug_draw:
             gl.glUseProgram(0)
