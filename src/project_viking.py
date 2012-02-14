@@ -24,20 +24,26 @@ import collisions
 import constants
 
 
+def handle_resize(w, h):
+    screen = pygame.display.set_mode((w, h), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
+    gl.glViewport(0, 0, w, h)
+    gl.glMatrixMode(gl.GL_PROJECTION)
+    gl.glLoadIdentity()
+    gl.glOrtho(0, w, h, 0, 0, 1)
+    gl.glMatrixMode(gl.GL_MODELVIEW)
+    gl.glLoadIdentity()
+    return screen
+
+
 def main(level_file):
     clock = events.dispatcher('Clock')
     keyboard = events.dispatcher('Keyboard')
     pygame.init()
     pygame.display.gl_set_attribute(pygame.GL_ALPHA_SIZE, 8)
-    screen = pygame.display.set_mode((1000, 600), pygame.OPENGL | pygame.DOUBLEBUF)
 
+    screen = handle_resize(1000, 600)
+    screen_center = (500, 300)
     gl.glEnable(gl.GL_TEXTURE_2D)
-    gl.glViewport(0, 0, 1000, 600);
-    gl.glMatrixMode(gl.GL_PROJECTION)
-    gl.glLoadIdentity()
-    gl.glOrtho(0, 1000, 600, 0, 0, 1)
-    gl.glMatrixMode(gl.GL_MODELVIEW)
-    gl.glLoadIdentity()
 
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendEquation(gl.GL_FUNC_ADD)
@@ -97,11 +103,14 @@ def main(level_file):
         start = time.clock()
 
         key_events = []
+        resize_event = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 0
             elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                 key_events.append(event)
+            elif event.type == pygame.VIDEORESIZE:
+                resize_event = event
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -118,6 +127,13 @@ def main(level_file):
                     pause = not pause
                 elif event.key == pygame.K_PERIOD and pause:
                     do_frame = True
+
+        if resize_event:
+            screen = handle_resize(resize_event.w, resize_event.h)
+            screen_center = (resize_event.w // 2, resize_event.h // 2)
+            background.xyuv[:, :2] = [[0, 0], [0, resize_event.h],
+                                      [resize_event.w, resize_event.h], [resize_event.w, 0]]
+            backgroundbuf[:] = background.xyuv
 
         if (not pause) or do_frame:
             for event in key_events:
@@ -162,8 +178,8 @@ def main(level_file):
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         # Now move camera
-        gl.glTranslated(500 - entities[0].location[0],
-                        300 - entities[0].location[1], 0.0)
+        gl.glTranslated(screen_center[0] - entities[0].location[0],
+                        screen_center[1] - entities[0].location[1], 0.0)
 
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
