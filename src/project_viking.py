@@ -192,7 +192,7 @@ def main(level_file):
                 offset = n * 16
                 entitybuf[offset:] = xyuv
                 texid[n] = thing.graphics.sprite.texid
-                print('Loaded data for entity', n, xyuv, 'texid', texid[n])
+                #print('Loaded data for entity', n, xyuv, 'texid', texid[n])
 
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
 
