@@ -11,6 +11,7 @@ import pyglet
 import pyglet.gl
 import components
 import ctypes
+from .atlas import Atlas
 from itertools import repeat, izip
 from pyglet import gl
 
@@ -26,66 +27,59 @@ __all__ = [
     ]
 
 
-# so we don't load images twice, store mapping of loaded sprite to file in here
-spritecommondata_cache = dict()
+# the list of active atlases
+atlases = list()
+
+# cache of sprites
+sprite_cache = dict()
 
 # cache of frames
 frame_cache = dict()
 
 
-class SpriteCommonData(object):
+class SpriteAtlas(Atlas):
     '''
-    A class holding an image that can be loaded to a texture id.
-
-    self.quad - array of 4 * 2 floats, shape=(4, 2) specifying a quad with the size of the given sprite
+    A class extending the Atlas class with a texture id.
     '''
 
-    def __init__(self, image):
-        '''Create a new sprite from a pygame surface (image)'''
-        self.image = image
-        k = image.get_size()
-        self.quad = numpy.array((0, 0, 0, k[1], k[0], k[1], k[0], 0), dtype=numpy.float32).reshape(4, 2)
-        self._texid = None
-
-    @property
-    def texid(self):
-        if self._texid is None:
-            self._texid = texture_from_image(self.image)
-
-        return self._texid
+    def __init__(self, w, h):
+        '''See documentation for Atlas class'''
+        super(SpriteAtlas, self).__init__(w, h)
+        self.texid = empty_texture((w, h))
 
 
 class Sprite(object):
     '''
     A combination of a sprite base and associated texture coordinates.
     This class allows sharing of sprite data between different transformed states of a sprite.
+
+    Useful properties:
+    sprite.xyuv - packed (4, 4) array of 4 points (x, y, u, v)
+        x, y - image corner
+        u, v - tex coords for that corner.
+    sprite.texid - texture id of this sprite's texture
+
+    sprite.atlas - image atlas for this sprite
     '''
 
-    def __init__(self, data, texcoords=None):
-        '''Create a new sprite from a SpriteCommonData object and attach some texture coordinates.
-        if texcoords is None, an array of texcoords are generated to draw the sprite normally.'''
+    def __init__(self, atlas, xyuv):
+        '''Create a new sprite describing a portion inside an image atlas.
+        atlas - the atlas to use.
+        xyuv - a float numpy array of shape (4, 4) containing 4 points,
+        each being 4 packed floats x, y, u, v where x, y are the coordinates of the sprite rectangle and should
+        be [(0, 0), (0, w), (h, w), (h, 0)] (w, h - width, height of the sprite image in pixels)
+        and u, v are the texture coordinates for that corner'''
 
-        self.data = data
-        if texcoords is None:
-            self.texcoords = numpy.array((0, 0, 0, 1, 1, 1, 1, 0), dtype=numpy.float32).reshape(4, 2)
-        else:
-            self.texcoords = texcoords
-
-    @property
-    def texid(self):
-        '''The texture id corresponding to this sprite'''
-        return self.data.texid
-
-    @property
-    def quad(self):
-        '''This sprite's quad's vertices as an array of floats, shape=(4, 2)'''
-        return self.data.quad
+        self.xyuv = xyuv
+        self.texid = atlas.texid
+        self.atlas = atlas
 
 
 def load_texture(filename, dimensions=2):
     ''' Loads a texture and returns its id.
     filename - file to open
     dimensions - how many dimensions the texture has. 1, 2 or 3. '''
+
     tex_img = pygame.image.load(filename)
     return texture_from_image(tex_img, dimensions=dimensions)
 
@@ -95,12 +89,37 @@ def load_sprite(dir, name):
     Loads a sprite object with an image set to dir/name
     '''
     try:
-        return Sprite(spritecommondata_cache[name])
+        return sprite_cache[name]
     except KeyError:
         sprite_img = pygame.image.load(os.path.join(dir, name) + '.png')
-        commondata = SpriteCommonData(sprite_img)
-        spritecommondata_cache[name] = commondata
-        return Sprite(commondata)
+        n_w, n_h = sprite_img.get_size()
+
+        for a in atlases:
+            coords = a.add(n_w, n_h)
+            if coords:
+                break
+        else:
+            a = SpriteAtlas(max(512, n_w), max(512, n_h))
+            coords = a.add(n_w, n_h)
+            atlases.append(a)
+
+        print('fit a', (n_w, n_h), 'image into', a, 'at', coords)
+
+        n_cx, n_cy = coords
+        f_uv = numpy.array((n_cx, n_cy, n_cx + n_w, n_cy + n_h), dtype=numpy.float32)
+        f_uv[0::2] /= a.w
+        f_uv[1::2] /= a.h
+        f_xy = numpy.array((0, 0, n_w, n_h), dtype=numpy.float32)
+        # indices of the coordinates of the corners of the quad in the
+        # above arrays
+        indices = ((0, 1), (0, 2), (3, 2), (3, 1))
+        f_data = numpy.empty((4, 4), dtype=numpy.float32)
+        f_data[:, 0:2] = numpy.take(f_xy, indices)
+        f_data[:, 2:4] = numpy.take(f_uv, indices)
+        sprite = Sprite(a, f_data)
+        sprite_cache[name] = sprite
+
+        return sprite
 
 
 def load_frame(dir, name):
@@ -134,19 +153,30 @@ def load_frame_sequence(dir, basename, number, start=1):
 
 def flip_frame(frame):
     flipped_name = frame['name'] + '/flipped'
-    if flipped_name in frame_cache:
+    try:
         return frame_cache[flipped_name]
-    hbp, hba = frame['hbp'], frame['hba']
-    hbp = components.hitbox(hbp.point * (-1, 1) + hbp.size * (-1, 0), hbp.size)
-    hba = components.hitbox(hba.point * (-1, 1) + hba.size * (-1, 0), hba.size)
-    texcoords = frame['sprite'].texcoords[::-1]
-    newframe={'sprite': Sprite(frame['sprite'].data, texcoords),
-              'sp': frame['sp'] * (-1, 1) + (-frame['sprite'].quad[2, 0], 0),
-              'hbp': hbp,
-              'hba': hba,
-              'name': flipped_name}
-    frame_cache[flipped_name] = newframe
-    return newframe
+    except KeyError:
+        hbp, hba = frame['hbp'], frame['hba']
+        hbp = components.hitbox(hbp.point * (-1, 1) + hbp.size * (-1, 0), hbp.size)
+        hba = components.hitbox(hba.point * (-1, 1) + hba.size * (-1, 0), hba.size)
+        sprite = frame['sprite']
+        f_data = numpy.copy(sprite.xyuv)
+        f_data[:, 2:4] = sprite.xyuv[:, 3:1:-1]
+        newframe={'sprite': Sprite(sprite.atlas, f_data),
+                  'sp': frame['sp'] * (-1, 1) + (-frame['sprite'].quad[2, 0], 0),
+                  'hbp': hbp,
+                  'hba': hba,
+                  'name': flipped_name}
+        frame_cache[flipped_name] = newframe
+        return newframe
+
+
+def empty_texture(size, internalformat=gl.GL_RGBA8):
+    zeros = numpy.zeros(size, dtype=numpy.int32)
+    _type = gl.GL_UNSIGNED_BYTE
+    _format = gl.GL_RGBA
+    return texture_from_data(internalformat, size, _format, _type, zeros.ctypes.data)
+
 
 def texture_from_image(image, internalformat=None, dimensions=2):
     '''Create and return a new texture id and initialize its data with the given image.
@@ -167,6 +197,25 @@ def texture_from_image(image, internalformat=None, dimensions=2):
     else:
         return None
 
+    if image.get_bytesize() == 3:
+        pixels = pygame.surfarray.pixels3d(image)
+    else:
+        pixels = pygame.surfarray.pixels2d(image)
+
+    size = [image.get_width(), image.get_height(), 0][:dimensions]
+    return texture_from_data(internalformat, size, _format, _type, pixels.ctypes.data)
+
+
+def texture_from_data(internalformat, size, data_format, data_type, data):
+    '''Create texture from a data buffer (whatever can be passed as pointer to ctypes)
+    internalformat - GL_RGBA8 or GL_RGB8 recommended
+    size - a 1-, 2- or 3-tuple describing the image sizes
+    data_format - see 'format' parameter of glDrawPixels
+    data_type - see 'type' parameter of glDrawPixels
+    data - pointer to memory'''
+
+    dimensions = len(size)
+    size = list(size)
     binding = getattr(gl, 'GL_TEXTURE_BINDING_{0:d}D'.format(dimensions))
     target = getattr(gl,'GL_TEXTURE_{0:d}D'.format(dimensions))
     texImage = getattr(gl,'glTexImage{0:d}D'.format(dimensions))
@@ -179,16 +228,8 @@ def texture_from_image(image, internalformat=None, dimensions=2):
     gl.glTexParameteri(target, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(target, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
 
-    if image.get_bytesize() == 3:
-        pixels = pygame.surfarray.pixels3d(image)
-    else:
-        pixels = pygame.surfarray.pixels2d(image)
-
-    imagesize = [image.get_width(), image.get_height(), 0][:dimensions]
-    args = [target, 0, internalformat] + imagesize + [0, _format, _type, pixels.ctypes.data]
+    args = [target, 0, internalformat] + size + [0, data_format, data_type, data]
 
     texImage(*args)
     gl.glBindTexture(target, oldbind)
     return texid
-
-

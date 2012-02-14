@@ -58,7 +58,7 @@ def main(level_file):
     scream = pygame.mixer.Sound(os.path.join(datadir, 'wilhelm.wav'))
     background = load_sprite(datadir, 'background')
     backgroundbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
-    backgroundbuf[:] = numpy.concatenate((background.quad, background.texcoords), axis=1)
+    backgroundbuf[:] = background.xyuv
     if level_file is None:
         walls = [components.hitbox((-5, -5), (10, 610)),
                  components.hitbox((995, -5), (10, 610)),
@@ -181,18 +181,18 @@ def main(level_file):
             else:
                 entities.remove(thing)
 
-        vertices = numpy.empty((4, 2), dtype=numpy.float32)
-        texcoords = numpy.empty((4, 2), dtype=numpy.float32)
+        xyuv = numpy.empty((4, 4), dtype=numpy.float32)
         texid = [0] * len(entities)
         with entitybuf.bound:
             for n, thing in enumerate(entities):
-                vertices[:] = thing.graphics.sprite.quad
-                vertices += thing.graphics.anchor
-                vertices += thing.location
-                texcoords[:] = thing.graphics.sprite.texcoords
+                xyuv[:] = thing.graphics.sprite.xyuv
+                xy = xyuv[:, 0:2]
+                xy[:] += thing.graphics.anchor
+                xy[:] += thing.location
                 offset = n * 16
-                entitybuf[offset:] = numpy.concatenate((vertices, texcoords), axis=1)
+                entitybuf[offset:] = xyuv
                 texid[n] = thing.graphics.sprite.texid
+                print('Loaded data for entity', n, xyuv, 'texid', texid[n])
 
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
 
