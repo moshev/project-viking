@@ -14,7 +14,7 @@ _PSYCHO_VS_SRC = r'''
 attribute vec4 data;
 varying vec2 p;
 varying vec2 txy;
-const vec2 scaling_factor = vec2(0.07, 0.07);
+const vec2 scaling_factor = vec2(0.1, 0.1);
 
 void main() {
     p = data.xy * scaling_factor;
@@ -100,7 +100,14 @@ void main() {
     //float a = (y[0] + y[1] + y[2] + y[3]) * 0.15 + y[4] * y[5] * 0.85;
     float a = y[4] * y[5] * 0.85 + (y[3] + y[1]) * 0.075;
     //a *= poly3(x[2]) * poly3(x[3]);
-    gl_FragColor = texture1D(palette, abs(w - 2.0 * w * fract(a + perturb)) + s) * texture2D(texture, txy);
+    vec4 pcolor = texture1D(palette, abs(w - 2.0 * w * fract(a + perturb)) + s);
+    vec4 tcolor = texture2D(texture, txy);
+    gl_FragColor = pcolor * tcolor;
+/*
+    pcolor.a = dot(pcolor.rgb, vec3(0.2126, 0.7152, 0.0722)) * 3.0;
+    float outline = (tcolor.r + tcolor.g + tcolor.b) * 0.6666667;
+    gl_FragColor = vec4(pcolor.rgb * tcolor.rgb, mix(tcolor.a, pcolor.a, outline * tcolor.a));
+*/
 }
 '''
 

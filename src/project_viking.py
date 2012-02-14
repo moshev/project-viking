@@ -168,6 +168,7 @@ def main(level_file):
                 numpy.round(thing.location, out=thing.location)
 
             do_frame = False
+            ticks_done += 1
 
         dead = []
 
@@ -236,7 +237,7 @@ def main(level_file):
         dragonprog['palette'] = 1
         dragonprog['perturb'] = (ticks_done % 1024) / 128
         dragonprog['shift'] = ticks_done / 600
-        gl.glTranslated(-100, -50, 0)
+        gl.glTranslated(-100, 100, 0)
         with dragonbuf.bound:
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
@@ -268,7 +269,6 @@ def main(level_file):
         delta = time.clock() - start
         if delta < constants.FRAME:
             time.sleep(constants.FRAME - delta)
-        ticks_done += 1
 
 if __name__ == '__main__':
     # ask for a level file...
