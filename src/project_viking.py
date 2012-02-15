@@ -43,6 +43,7 @@ def main(level_file):
 
     screen = handle_resize(1000, 600)
     screen_center = (500, 300)
+    camera_offset = 130
     gl.glEnable(gl.GL_TEXTURE_2D)
 
     gl.glEnable(gl.GL_BLEND)
@@ -95,9 +96,12 @@ def main(level_file):
 
     dragonprog = shaders.psycho()
     dragonpalette = load_texture(os.path.join(datadir, 'wallpalette.png'), dimensions=1)
-    dragonsprite = load_sprite(datadir, 'dragon')
+    dragonsprite_scales = load_sprite(datadir, 'dragon_scales')
+    dragonsprite_contours = load_sprite(datadir, 'dragon_contours')
     dragonbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
-    dragonbuf[:] = dragonsprite.xyuv
+    dragonbuf[:] = dragonsprite_scales.xyuv
+    contourbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
+    contourbuf[:] = dragonsprite_contours.xyuv
 
     debug_draw = False
     pause = False
@@ -184,7 +188,7 @@ def main(level_file):
 
         # Now move camera
         gl.glTranslated(screen_center[0] - entities[0].location[0],
-                        screen_center[1] - entities[0].location[1], 0.0)
+                        screen_center[1] - entities[0].location[1] + camera_offset, 0.0)
 
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
@@ -227,9 +231,9 @@ def main(level_file):
             gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
 
-        # draw the fuckin' dragon
+        # draw some shaders
         gl.glUseProgram(dragonprog.id)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, dragonsprite.texid)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, dragonsprite_scales.texid)
         gl.glActiveTexture(gl.GL_TEXTURE0 + 1)
         gl.glBindTexture(gl.GL_TEXTURE_1D, dragonpalette)
         gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -239,6 +243,14 @@ def main(level_file):
         dragonprog['shift'] = ticks_done / 600
         gl.glTranslated(-100, 145, 0)
         with dragonbuf.bound:
+            gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
+        
+        # now draw the rest of the fuckin' dragon
+        gl.glUseProgram(spriteprog.id)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, dragonsprite_contours.texid)
+        spriteprog['texture'] = 0
+        with contourbuf.bound:
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
