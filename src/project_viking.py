@@ -237,7 +237,7 @@ def main(level_file):
         dragonprog['palette'] = 1
         dragonprog['perturb'] = (ticks_done % 1024) / 128
         dragonprog['shift'] = ticks_done / 600
-        gl.glTranslated(-100, 100, 0)
+        gl.glTranslated(-100, 145, 0)
         with dragonbuf.bound:
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
