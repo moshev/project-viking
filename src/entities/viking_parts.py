@@ -55,7 +55,7 @@ class WalkRight(controls.BaseActionState):
 
 
     def on_tick(self, entity):
-        entity.motion.a[0] += WALK_SPEED
+        entity.motion_a[0] += WALK_SPEED
 
 
     def __transitions__(self):
@@ -72,7 +72,7 @@ class WalkLeft(controls.BaseActionState):
 
 
     def on_tick(self, entity):
-        entity.motion.a[0] -= WALK_SPEED
+        entity.motion_a[0] -= WALK_SPEED
 
 
     def __transitions__(self):
@@ -111,7 +111,7 @@ class BaseJumpState(controls.BaseActionState):
         else:
             self.ticks += 1
 
-        entity.motion.a += da
+        entity.motion_a += da
 
 
 class JumpRight(BaseJumpState):
@@ -410,5 +410,3 @@ class PunchLeftAnimation(BaseAnimation):
         t = dict(super(PunchLeftAnimation, self).__transitions__())
         del t['punch_left']
         return t
-
-

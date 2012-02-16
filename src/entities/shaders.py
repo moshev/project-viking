@@ -14,7 +14,7 @@ _PSYCHO_VS_SRC = r'''
 attribute vec4 data;
 varying vec2 p;
 varying vec2 txy;
-const vec2 scaling_factor = vec2(0.1, 0.1);
+const vec2 scaling_factor = vec2(0.5, 0.6);
 
 void main() {
     p = data.xy * scaling_factor;

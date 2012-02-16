@@ -21,13 +21,13 @@ def apply_friction(gnd, air=0):
             f = gnd
         else:
             f = air
-        if abs(entity.motion.v[0]) > f:
-            if entity.motion.v[0] > 0:
-                entity.motion.v[0] -= f
+        if abs(entity.motion_v[0]) > f:
+            if entity.motion_v[0] > 0:
+                entity.motion_v[0] -= f
             else:
-                entity.motion.v[0] += f
+                entity.motion_v[0] += f
         else:
-            entity.motion.v[0] = 0
+            entity.motion_v[0] = 0
 
     return friction_on
 
@@ -36,10 +36,10 @@ def speed_limiter(limit):
     limit = arrayify(limit)
     def limiter(entity):
         for i in range(len(limit)):
-            if entity.motion.v[i] > limit[i]:
-                entity.motion.v[i] = limit[i]
-            elif entity.motion.v[i] < -limit[i]:
-                entity.motion.v[i] = -limit[i]
+            if entity.motion_v[i] > limit[i]:
+                entity.motion_v[i] = limit[i]
+            elif entity.motion_v[i] < -limit[i]:
+                entity.motion_v[i] = -limit[i]
     return limiter
 
 
@@ -65,4 +65,3 @@ def ground_limiter(ground_level):
                 entity.tags.remove('grounded')
 
     return limiter
-

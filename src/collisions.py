@@ -171,9 +171,9 @@ def resolve_wall_collisions(entities, walls):
                 if side == 3:
                     thing.tags.add('grounded')
 
-                v = thing.motion.v[side // 2]
+                v = thing.motion_v[side // 2]
                 if v == 0 or v * diff < 0 or (diff == 0 and (v > 0) == side % 2):
-                    thing.motion.v[side // 2] = 0
+                    thing.motion_v[side // 2] = 0
                     adjust[side // 2] += diff
                     contribs += 1
 
@@ -227,7 +227,7 @@ def resolve_passive_passive_collisions(entities):
                 thing2.tags.add('grounded')
 
             side = side // 2
-            v1, v2 = thing1.motion.v, thing2.motion.v
+            v1, v2 = thing1.motion_v, thing2.motion_v
 
             # Already moving away from each other, nothing to do here.
             if (v1[side] - v2[side]) * diff > 0:
@@ -254,7 +254,11 @@ def resolve_passive_passive_collisions(entities):
         thing.location += adjust
 
     for side, i1, i2 in swaps:
-        entities[i1].motion.v[side], entities[i2].motion.v[side] = entities[i2].motion.v[side], entities[i1].motion.v[side]
+        m1 = entities[i1].motion_v[side]
+        m2 = entities[i2].motion_v[side]
+        entities[i1].motion_v[side] = m2
+        entities[i2].motion_v[side] = m1
+
 
     return len(swaps)
 
@@ -271,5 +275,3 @@ def resolve_passive_active_collisions(entities):
             continue
         if apcollisions[i1, i2]:
             entities[i2].hitpoints -= 1
-
-

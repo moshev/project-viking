@@ -148,13 +148,13 @@ def main(level_file):
                 keyboard.dispatch(event)
 
             for thing in entities:
-                thing.motion.a[:] = (0, constants.G)
+                thing.motion_a[:] = (0, constants.G)
 
             clock.dispatch(tick_event)
 
             for thing in entities:
                 thing.tags.discard('grounded')
-                thing.motion.v += thing.motion.a
+                thing.motion_v += thing.motion_a
 
             collisions.resolve_passive_active_collisions(entities)
 
@@ -168,7 +168,7 @@ def main(level_file):
                 attempts += 1
 
             for thing in entities:
-                thing.location += thing.motion.v
+                thing.location += thing.motion_v
                 numpy.round(thing.location, out=thing.location)
 
             do_frame = False
@@ -200,7 +200,7 @@ def main(level_file):
             if thing.name == 'Player':
                 thing.hitpoints = 100
                 thing.location[:] = (500, -10)
-                thing.motion.v[:] = 0
+                thing.motion_v[:] = 0
                 if thing.physics is not None:
                     thing.physics.last_position[:] = thing.location
             else:
@@ -245,7 +245,7 @@ def main(level_file):
         with dragonbuf.bound:
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
-        
+
         # now draw the rest of the fuckin' dragon
         gl.glUseProgram(spriteprog.id)
         gl.glBindTexture(gl.GL_TEXTURE_2D, dragonsprite_contours.texid)
