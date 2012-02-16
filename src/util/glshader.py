@@ -11,6 +11,9 @@ from pyglet import gl
 __all__ = ['GLProgram']
 
 
+SETTERSF = [gl.glUniform1f, gl.glUniform2f, gl.glUniform3f, gl.glUniform4f]
+
+
 class GLProgram(object):
     def __init__(self, vertex_shader_src, fragment_shader_src):
         vsid = vertex_shader(vertex_shader_src)
@@ -30,14 +33,18 @@ class GLProgram(object):
                 raise NoSuchUniformError(uniform)
             self.uniforms[uniform] = uid
 
+        args = [uid]
         if isinstance(value, (int, ctypes.c_int)):
             setter = gl.glUniform1i
+            args.append(value)
         elif isinstance(value, (float, ctypes.c_float, ctypes.c_double)):
             setter = gl.glUniform1f
+            args.append(value)
         else:
-            raise TypeError('Cannot use a {} to set uniform {}'.format(value.__class__,
-                                                                       uniform))
-        setter(uid, value)
+            args.extend(value)
+            setter = SETTERSF[len(args) - 2]
+
+        setter(*args)
 
     @property
     def id(self):
@@ -124,6 +131,3 @@ def check_shader_or_program_status(obj):
         raise ErrorClass(error)
     else:
         return obj
-
-
-

@@ -165,11 +165,11 @@ class entity(object):
             if instance is None:
                 return entity._data[self.name]
             else:
-                return entity._data[instance.arrayid][self.name]
+                return entity._data[self.name][instance.arrayid]
 
 
         def __set__(self, instance, value):
-            entity._data[instance.arrayid][self.name] = value
+            entity._data[self.name][instance.arrayid] = value
 
 
     _space = 1024
@@ -182,13 +182,13 @@ class entity(object):
     PASSIVE_BR = intern('passive_br')
 
     _descriptor = numpy.dtype([(LOCATION, float, (2,)),
-                              (MOTION_A, float, (2,)),
-                              (MOTION_V, float, (2,)),
-                              (ACTIVE_TL, float, (2,)),
-                              (ACTIVE_BR, float, (2,)),
-                              (PASSIVE_TL, float, (2,)),
-                              (PASSIVE_BR, float, (2,)),])
-    _data = numpy.empty((_space,), dtype=_descriptor)
+                               (MOTION_A, float, (2,)),
+                               (MOTION_V, float, (2,)),
+                               (ACTIVE_TL, float, (2,)),
+                               (ACTIVE_BR, float, (2,)),
+                               (PASSIVE_TL, float, (2,)),
+                               (PASSIVE_BR, float, (2,)),])
+    _data = numpy.zeros((_space,), dtype=_descriptor)
     _mask = numpy.zeros((_space,), dtype=numpy.bool)
 
 
@@ -209,9 +209,11 @@ class entity(object):
         else:
             raise RuntimeError('exhausted _space for entity shit =[')
 
+        entity._mask[arrayid] = True
         return arrayid
 
 
     @staticmethod
     def release_array(arrayid):
-        _mask[arrayid] = False
+        entity._data[arrayid] = numpy.zeros((1,), dtype=entity._descriptor)
+        entity._mask[arrayid] = False

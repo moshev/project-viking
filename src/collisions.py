@@ -8,10 +8,13 @@ import random
 MAX_DIFF = 5.0
 
 
-def passive_passive_collisions(things):
+def passive_passive_collisions(toplefts, bottomrights):
     '''
     Returns a NxN array where element at [i, j] says if
     thing i collides with thing j with respect to their passive hitboxes.
+
+    toplefts and bottomrights must be arrays of shape (N, 2), containing
+    the global coordinates of the hitboxes' corners
 
     To see if two boxes do NOT collide, the check is if
     my left side is past the other's right side or
@@ -27,11 +30,6 @@ def passive_passive_collisions(things):
 
     That is negated to obtain whether two boxes cross each other.
     '''
-    toplefts = numpy.array([thing.hitbox_passive.point for thing in things])
-    bottomrights = toplefts + [thing.hitbox_passive.size for thing in things]
-    locations = numpy.array([thing.location for thing in things])
-    toplefts += locations
-    bottomrights += locations
     halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] > bottomrights[:, numpy.newaxis, :], axis=2)
     result = numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
 
@@ -40,36 +38,29 @@ def passive_passive_collisions(things):
     return result
 
 
-def active_passive_collisions(things):
+def active_passive_collisions(active_tl, active_br, passive_tl, passive_br):
     '''
     Returns an NxN array, where element at [i, j] says if
     thing i's active hitbox crosses thing j's active hitbox.
     An active hitbox isn't considered if any of its dimensions is not-positive.
 
+    active/passive_tl/br must be arrays of shape (N, 2) - the boxes' corners in
+    global coordinates
+
     See comment for passive_passive_collisions for longer explanation.
     The main difference is that we can't cheat here and do half the checks,
     then transpose, we need to do all checks.
     '''
-    locations = numpy.array([thing.location for thing in things])
+    passive_tl_3d = passive_tl_3d.reshape(1, -1, 2)
+    passive_br_3d = passive_br_3d.reshape(1, -1, 2)
 
-    toplefts_passive = numpy.array([thing.hitbox_passive.point for thing in things])
-    bottomrights_passive = toplefts_passive + [thing.hitbox_passive.size for thing in things]
-    toplefts_passive += locations
-    bottomrights_passive += locations
-    toplefts_passive = toplefts_passive.reshape(1, -1, 2)
-    bottomrights_passive = bottomrights_passive.reshape(1, -1, 2)
+    active_tl_3d = active_tl_3d.reshape(-1, 1, 2)
+    active_br_3d = active_br_3d.reshape(-1, 1, 2)
 
-    toplefts_active = numpy.array([thing.hitbox_active.point for thing in things])
-    bottomrights_active = toplefts_active + [thing.hitbox_active.size for thing in things]
-    toplefts_active += locations
-    bottomrights_active += locations
-    toplefts_active = toplefts_active.reshape(-1, 1, 2)
-    bottomrights_active = bottomrights_active.reshape(-1, 1, 2)
+    negcheck = numpy.logical_or(numpy.any(active_tl_3d > passive_br_3d, axis=2),
+                                numpy.any(active_br_3d < passive_tl_3d, axis=2))
 
-    negcheck = numpy.logical_or(numpy.any(toplefts_active > bottomrights_passive, axis=2),
-                                numpy.any(bottomrights_active < toplefts_passive, axis=2))
-
-    legible = numpy.all(numpy.greater([thing.hitbox_active.size for thing in things], 0), axis=1).reshape(-1, 1)
+    legible = numpy.all(active_tl < active_br, axis=1).reshape(-1, 1)
 
     result = numpy.logical_and(numpy.logical_not(negcheck), legible)
 
@@ -78,31 +69,22 @@ def active_passive_collisions(things):
     return result
 
 
-def passive_walls_collisions(things, walls):
+def passive_walls_collisions(passive_tl, passive_br, walls_tl, walls_br):
     '''
     Returns a NxM array where element at [i, j] says if
     thing i collides with wall j with respect to its passive hitbox.
     '''
-    toplefts_things = numpy.array([thing.hitbox_passive.point for thing in things])
-    bottomrights_things = toplefts_things + [thing.hitbox_passive.size for thing in things]
-    locations_things = numpy.array([thing.location for thing in things])
-    toplefts_things += locations_things
-    bottomrights_things += locations_things
-    toplefts_things = toplefts_things.reshape(-1, 1, 2)
-    bottomrights_things = bottomrights_things.reshape(-1, 1, 2);
-
-    toplefts_walls = numpy.array([wall.point for wall in walls])
-    bottomrights_walls = toplefts_walls + [wall.size for wall in walls]
-    toplefts_walls = toplefts_walls.reshape(1, -1, 2)
-    bottomrights_walls = bottomrights_walls.reshape(1, -1, 2);
-
-    not_colliding = numpy.logical_or(numpy.any(toplefts_things > bottomrights_walls, axis=2),
-                                     numpy.any(bottomrights_things < toplefts_walls, axis=2))
+    passive_tl = passive_tl.reshape(-1, 1, 2)
+    passive_br = passive_br.reshape(-1, 1, 2);
+    walls_tl = walls_tl.reshape(1, -1, 2)
+    walls_br = walls_br.reshape(1, -1, 2);
+    not_colliding = numpy.logical_or(numpy.any(passive_tl > walls_br, axis=2),
+                                     numpy.any(passive_br < walls_tl, axis=2))
 
     return numpy.logical_not(not_colliding)
 
 
-def complete_collision(box1, box2):
+def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
     '''Performs a complete collision between box1 and box2.
     Returns a tuple (which sides collide, motion vector with respect to box1)
     The first element is either
@@ -119,8 +101,7 @@ def complete_collision(box1, box2):
     #
     # => [[x0, x1],
     #     [y0, y1]]
-    rect1 = box1.point.reshape(-1, 1).repeat(2, 1)
-    rect1[:,1] += box1.size
+    rect1 = numpy.transpose((box1_tl, box1_br))
 
     # x0, y0 -----+
     #    |        | <- passive hitbox of thing 2
@@ -131,8 +112,7 @@ def complete_collision(box1, box2):
     #     [y1, y0]]
     #
     # note: reversed wrt the above.
-    rect2 = box2.point.reshape(-1, 1).repeat(2, 1)
-    rect2[:,0] += box2.size
+    rect2 = numpy.transpose((box2_br, box2_tl))
 
     # diff[0, 0] - how much to move the two hitboxes vertically
     #              such that box1 is above box2.
@@ -148,16 +128,16 @@ def complete_collision(box1, box2):
     return (side, diff)
 
 
-def resolve_wall_collisions(entities, walls):
+def resolve_wall_collisions(passive_tl, passive_br, walls_tl, walls_br):
     '''Resolves all collisions between entities and walls.
     TODO: Add inelasticity coefficients and make entities bounce around.'''
 
-    pwcollisions = passive_walls_collisions(entities, walls);
-    hbp = components.hitbox((0, 0), (0, 0))
+    pwcollisions = passive_walls_collisions(passive_tl, passive_br, walls_tl, walls_br);
 
-    move = numpy.zeros((len(entities), 2))
-    contributors = numpy.zeros ((len(entities),), dtype=int)
+    move = numpy.zeros((len(passive_tl), 2))
+    contributors = numpy.zeros((len(passive_tl),), dtype=int)
     resolved = 0
+
 
     for thing, adjust, contribs, collisions in itertools.izip(entities, move, contributors, pwcollisions):
         for wall, collides in itertools.izip(walls, collisions):

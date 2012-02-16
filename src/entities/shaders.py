@@ -127,7 +127,7 @@ void main() {
 _WALL_FS_SRC = r'''
 #version 120
 
-uniform vec4 color = vec4(79.0/255.0, 118.0/255.0, 73.0/255.0, 1.0);
+uniform vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
 void main() {
     gl_FragColor = color;

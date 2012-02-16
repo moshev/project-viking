@@ -72,6 +72,9 @@ def main(level_file):
                  components.hitbox((-5, 595), (1010, 5)), ]
     else:
         walls = level.load(level_file)
+        for w in walls:
+            numpy.round(w.point, out=w.point)
+            numpy.round(w.size, out=w.size)
 
     # vertex positions for walls
     quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
@@ -99,9 +102,9 @@ def main(level_file):
     dragonsprite_scales = load_sprite(datadir, 'dragon_scales')
     dragonsprite_contours = load_sprite(datadir, 'dragon_contours')
     dragonbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
-    dragonbuf[:] = dragonsprite_scales.xyuv
+    dragonbuf[:] = dragonsprite_scales.xyuv + (-100, 145, 0, 0)
     contourbuf = GLBuffer(4 * 4, numpy.float32, gl.GL_STATIC_DRAW)
-    contourbuf[:] = dragonsprite_contours.xyuv
+    contourbuf[:] = dragonsprite_contours.xyuv + (-100, 145, 0, 0)
 
     debug_draw = False
     pause = False
@@ -147,14 +150,16 @@ def main(level_file):
             for event in key_events:
                 keyboard.dispatch(event)
 
-            for thing in entities:
-                thing.motion_a[:] = (0, constants.G)
+            motion_a = components.entity.motion_a
+            motion_v = components.entity.motion_v
+            motion_a[:] = (0, constants.G)
 
             clock.dispatch(tick_event)
 
             for thing in entities:
                 thing.tags.discard('grounded')
-                thing.motion_v += thing.motion_a
+
+            motion_v[:] += motion_a
 
             collisions.resolve_passive_active_collisions(entities)
 
@@ -167,9 +172,13 @@ def main(level_file):
                 resolutions = rppc(entities)
                 attempts += 1
 
-            for thing in entities:
-                thing.location += thing.motion_v
-                numpy.round(thing.location, out=thing.location)
+            motion_v_round = numpy.round(motion_v)
+            components.entity.location[:] += motion_v_round
+            components.entity.active_tl[:] += motion_v_round
+            components.entity.active_br[:] += motion_v_round
+            components.entity.passive_tl[:] += motion_v_round
+            components.entity.passive_br[:] += motion_v_round
+            #numpy.round(thing.location, out=thing.location)
 
             do_frame = False
             ticks_done += 1
@@ -187,8 +196,8 @@ def main(level_file):
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         # Now move camera
-        gl.glTranslated(screen_center[0] - entities[0].location[0],
-                        screen_center[1] - entities[0].location[1] + camera_offset, 0.0)
+        camera_location = (screen_center - numpy.round(entities[0].location)) + (0, camera_offset)
+        gl.glTranslated(camera_location[0], camera_location[1], 0.0)
 
         for thing in entities:
             if thing.hitpoints <= 0 or thing.location[1] > 10000:
@@ -205,6 +214,7 @@ def main(level_file):
                     thing.physics.last_position[:] = thing.location
             else:
                 entities.remove(thing)
+                thing.dispose()
 
         xyuv = numpy.empty((4, 4), dtype=numpy.float32)
         texid = [0] * len(entities)
@@ -213,7 +223,7 @@ def main(level_file):
                 xyuv[:] = thing.graphics.sprite.xyuv
                 xy = xyuv[:, 0:2]
                 xy[:] += thing.graphics.anchor
-                xy[:] += thing.location
+                xy[:] += numpy.round(thing.location)
                 offset = n * 16
                 entitybuf[offset:] = xyuv
                 texid[n] = thing.graphics.sprite.texid
@@ -227,6 +237,7 @@ def main(level_file):
 
         # draw walls
         gl.glUseProgram(wallprog.id)
+        wallprog['color'] = (79.0/255.0, 118.0/255.0, 73.0/255.0, 1.0)
         with wallbuf.bound:
             gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
@@ -241,7 +252,6 @@ def main(level_file):
         dragonprog['palette'] = 1
         dragonprog['perturb'] = (ticks_done % 1024) / 128
         dragonprog['shift'] = ticks_done / 600
-        gl.glTranslated(-100, 145, 0)
         with dragonbuf.bound:
             gl.glVertexAttribPointer(0, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
@@ -255,19 +265,16 @@ def main(level_file):
             gl.glDrawArrays(gl.GL_TRIANGLE_FAN, 0, 4)
 
         if debug_draw:
-            gl.glUseProgram(0)
-            gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
-            gl.glColor3f(0.89, 0.89, 0.89)
+            gl.glUseProgram(wallprog.id)
+            wallprog['color'] = (0.89, 0.89, 0.89, 1.0)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
-            quads[:, 0, :] = [thing.location + thing.hitbox_passive.point
-                            for thing in entities]
-            quads[:, 2, :] = [thing.hitbox_passive.size for thing in entities]
-            quads[:, 2, :] += quads[:, 0, :]
+            quads[:, 0, :] = components.entity.passive_tl[components.entity._mask]
+            quads[:, 2, :] = components.entity.passive_br[components.entity._mask]
             quads[:, 1, 0] = quads[:, 0, 0]
             quads[:, 1, 1] = quads[:, 2, 1]
             quads[:, 3, 0] = quads[:, 2, 0]
             quads[:, 3, 1] = quads[:, 0, 1]
-            gl.glVertexPointer(2, gl.GL_FLOAT, 0, quads.ctypes.data)
+            gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, quads.ctypes.data)
             gl.glDrawArrays(gl.GL_QUADS, 0, quads.size // 2)
 
         gl.glColor3f(1, 1, 1)
