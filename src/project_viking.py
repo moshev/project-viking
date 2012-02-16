@@ -43,7 +43,7 @@ def main(level_file):
 
     screen = handle_resize(1000, 600)
     screen_center = (500, 300)
-    camera_offset = 130
+    camera_offset = 230
     gl.glEnable(gl.GL_TEXTURE_2D)
 
     gl.glEnable(gl.GL_BLEND)

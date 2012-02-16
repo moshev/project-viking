@@ -14,7 +14,7 @@ _PSYCHO_VS_SRC = r'''
 attribute vec4 data;
 varying vec2 p;
 varying vec2 txy;
-const vec2 scaling_factor = vec2(0.1, 0.1);
+const vec2 scaling_factor = vec2(0.4, 0.4);
 
 void main() {
     p = data.xy * scaling_factor;
@@ -127,7 +127,7 @@ void main() {
 _WALL_FS_SRC = r'''
 #version 120
 
-uniform vec4 color = vec4(79.0/255.0, 118.0/255.0, 73.0/255.0, 1.0);
+uniform vec4 color = vec4(162.0/255.0, 153.0/255.0, 118.0/255.0, 1.0);
 
 void main() {
     gl_FragColor = color;
