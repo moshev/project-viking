@@ -8,40 +8,48 @@ from constants import *
 from collections import defaultdict
 from util import *
 
-def apply_friction(friction):
+
+
+def apply_friction(gnd, air=0):
+    '''
+    Create a function which will apply the given ground and air friction to an entity.
+    Intended to be added as a physics modifier.
+    Note: the model used will make a physicist cry, but it works ^_^
+    '''
     def friction_on(entity):
         if 'grounded' in entity.tags:
-            if abs(entity.motion.v[0]) > friction:
-                if entity.motion.v[0] > 0:
-                    entity.motion.v[0] -= friction
-                else:
-                    entity.motion.v[0] += friction
+            f = gnd
+        else:
+            f = air
+        if abs(entity.motion_v[0]) > f:
+            if entity.motion_v[0] > 0:
+                entity.motion_v[0] -= f
             else:
-                entity.motion.v[0] = 0
+                entity.motion_v[0] += f
+        else:
+            entity.motion_v[0] = 0
+
     return friction_on
+
 
 def speed_limiter(limit):
     limit = arrayify(limit)
     def limiter(entity):
         for i in range(len(limit)):
-            if entity.motion.v[i] > limit[i]:
-                entity.motion.v[i] = limit[i]
-            elif entity.motion.v[i] < -limit[i]:
-                entity.motion.v[i] = -limit[i]
+            if entity.motion_v[i] > limit[i]:
+                entity.motion_v[i] = limit[i]
+            elif entity.motion_v[i] < -limit[i]:
+                entity.motion_v[i] = -limit[i]
     return limiter
+
 
 def regular_physics(entity):
     '''
     Returns a physics object with added velocity and location calculators and affected by gravity.
     '''
     p = components.physics(entity)
-    p.add(components.velocity_calculator, components.physics.GROUP_ACCELERATION + 1)
-    p.add(components.location_calculator, components.physics.GROUP_VELOCITY + 1)
-    p.add(gravity, components.physics.GROUP_ACCELERATION)
     return p
 
-def gravity(entity):
-    entity.motion.a[1] += G
 
 def ground_limiter(ground_level):
     '''
@@ -57,4 +65,3 @@ def ground_limiter(ground_level):
                 entity.tags.remove('grounded')
 
     return limiter
-
