@@ -72,9 +72,12 @@ def main(level_file):
                  components.hitbox((-5, 595), (1010, 5)), ]
     else:
         walls = level.load(level_file)
+        walls_tlbr = numpy.empty((2, len(walls), 2))
         for w in walls:
             numpy.round(w.point, out=w.point)
             numpy.round(w.size, out=w.size)
+        walls_tlbr[0] = [w.point for w in walls]
+        walls_tlbr[1] = [w.point + w.size for w in walls]
 
     # vertex positions for walls
     quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
@@ -150,34 +153,38 @@ def main(level_file):
             for event in key_events:
                 keyboard.dispatch(event)
 
+            location = components.entity.location
+            delta = numpy.array(location)
             motion_a = components.entity.motion_a
             motion_v = components.entity.motion_v
-            motion_a[:] = (0, constants.G)
+            active_tl = components.entity.active_tl
+            active_br = components.entity.active_br
+            passive_tl = components.entity.passive_tl
+            passive_br = components.entity.passive_br
+            mask = components.entity._mask
 
+            motion_a[mask] = (0, constants.G)
             clock.dispatch(tick_event)
-
             for thing in entities:
                 thing.tags.discard('grounded')
-
             motion_v[:] += motion_a
-
-            collisions.resolve_passive_active_collisions(entities)
-
+            #collisions.resolve_passive_active_collisions(entities)
             attempts = 0
             resolutions = 1
             rppc = collisions.resolve_passive_passive_collisions
             rwc = collisions.resolve_wall_collisions
             while attempts < 20 and resolutions != 0:
-                rwc(entities, walls)
-                resolutions = rppc(entities)
+                rwc(mask, location, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+                resolutions = rppc(location, motion_v, passive_tl, passive_br)
                 attempts += 1
 
-            motion_v_round = numpy.round(motion_v)
-            components.entity.location[:] += motion_v_round
-            components.entity.active_tl[:] += motion_v_round
-            components.entity.active_br[:] += motion_v_round
-            components.entity.passive_tl[:] += motion_v_round
-            components.entity.passive_br[:] += motion_v_round
+            location[:] += motion_v
+            numpy.round(location, out=location)
+            delta -= location
+            active_tl[:] -= delta
+            active_br[:] -= delta
+            passive_tl[:] -= delta
+            passive_br[:] -= delta
             #numpy.round(thing.location, out=thing.location)
 
             do_frame = False

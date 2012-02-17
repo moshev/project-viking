@@ -172,7 +172,7 @@ class entity(object):
             entity._data[self.name][instance.arrayid] = value
 
 
-    _space = 1024
+    _space = 128
     LOCATION = intern('location')
     MOTION_A = intern('motion_a')
     MOTION_V = intern('motion_v')

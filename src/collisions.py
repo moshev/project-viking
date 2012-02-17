@@ -30,7 +30,7 @@ def passive_passive_collisions(toplefts, bottomrights):
 
     That is negated to obtain whether two boxes cross each other.
     '''
-    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] > bottomrights[:, numpy.newaxis, :], axis=2)
+    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] >= bottomrights[:, numpy.newaxis, :], axis=2)
     result = numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
 
     # Remove self collisions
@@ -92,83 +92,81 @@ def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
     2 - box2 over box1, 3 - box1 over box2
 
     The second is a single number - how much to move box1 in the given direction,
-    so that it just touches box2.'''
+    so that it just touches box2.
 
-    # x0, y0 -----+
-    #    |        | <- passive hitbox of thing 1
+    The returned values are arrays, each with N elements for each of the left elements'''
+
+    #    tl
+    #  x0, y0 ----+
+    #    |        | <- passive hitbox of first "left" thing, i.e. box1_[0]
     #    |        |
-    #    +-----x1, y1
+    #    +----- x1, y1
+    #             br
     #
-    # => [[x0, x1],
-    #     [y0, y1]]
-    rect1 = numpy.transpose((box1_tl, box1_br))
-
-    # x0, y0 -----+
-    #    |        | <- passive hitbox of thing 2
+    #    tl'
+    # x'0, y'0 ---+
+    #    |        | <- passive hitbox of first "right" thing, i.e. box2_[0]
     #    |        |
-    #    +-----x1, y1
+    #    +---- x'1, y'1
+    #             br'
     #
-    # => [[x1, x0],
-    #     [y1, y0]]
+    # diff = [x'1-x0, x'0-x1, y'1-y0, y'0-y1]
     #
-    # note: reversed wrt the above.
-    rect2 = numpy.transpose((box2_br, box2_tl))
-
-    # diff[0, 0] - how much to move the two hitboxes vertically
-    #              such that box1 is above box2.
-    # diff[0, 1] - how much to move the two hitboxes vertically
-    #              such that box2 is above box1.
-    # and so on for diff[1, *] - (1 2, then 2 1)
-    diff = rect2 - rect1
+    # diff[0] - how much to move the two hitboxes vertically
+    #           such that box1 is above box2.
+    # diff[1] - how much to move the two hitboxes vertically
+    #           such that box2 is above box1.
+    # and so on for diff[3],[4] - (1 2, then 2 1)
+    #
+    diff = numpy.empty((len(box1_tl), 4), dtype=float)
+    numpy.subtract(box2_br, box1_tl, diff[:,::2])
+    numpy.subtract(box2_tl, box1_br, diff[:,1::2])
 
     # And the movement is the shortest alternative
-    side = numpy.argmin(numpy.abs(diff.flat))
-    diff = diff.flat[side]
+    side = numpy.argmin(numpy.abs(diff), axis=1)
+    i = numpy.arange(len(diff))
+    # now we reuse arrays like a boss
+    diff[:,0] = diff[i, side]
 
-    return (side, diff)
+    return (side, diff[:,0])
 
 
-def resolve_wall_collisions(passive_tl, passive_br, walls_tl, walls_br):
+def resolve_wall_collisions(mask, location, motion_v, passive_tl, passive_br, walls_tl, walls_br):
     '''Resolves all collisions between entities and walls.
     TODO: Add inelasticity coefficients and make entities bounce around.'''
 
     pwcollisions = passive_walls_collisions(passive_tl, passive_br, walls_tl, walls_br);
 
-    move = numpy.zeros((len(passive_tl), 2))
-    contributors = numpy.zeros((len(passive_tl),), dtype=int)
+    motion_v_to_zero = numpy.zeros(motion_v.shape, dtype=bool)
+    nthings = len(location)
+    move = numpy.zeros((nthings, 2))
+    contributors = numpy.zeros((nthings, 2), dtype=int)
+    allrows = numpy.arange(nthings)
     resolved = 0
 
+    for wall_tl, wall_br in itertools.izip(walls_tl.reshape(-1, 1, 2), walls_br.reshape(-1, 1, 2)):
+        # sidew, diffw - side and diff information for
+        # all entities and ONE wall
+        sidew, diffw = complete_collision(passive_tl, passive_br, wall_tl, wall_br)
+        xory = sidew // 2
+        aorb = sidew % 2
+        v = motion_v[allrows, xory]
+        vs = (v * diffw < 0) | (diffw == 0 & ((v > 0) == aorb)) | (v == 0)
+        affectedrows = allrows[vs]
+        xory = xory[vs]
+        move[affectedrows, xory] += diffw[affectedrows]
+        contributors[affectedrows, xory] += 1
+        motion_v_to_zero[affectedrows, xory] = True
+    del sidew, diffw, wall_tl, wall_br
 
-    for thing, adjust, contribs, collisions in itertools.izip(entities, move, contributors, pwcollisions):
-        for wall, collides in itertools.izip(walls, collisions):
-            if collides:
-                numpy.add(thing.hitbox_passive.point, thing.location, hbp.point)
-                hbp.size[:] = thing.hitbox_passive.size
-
-                side, diff = complete_collision(hbp, wall)
-
-                # Set grounded flag when one is on top of the other
-                if side == 3:
-                    thing.tags.add('grounded')
-
-                v = thing.motion_v[side // 2]
-                if v == 0 or v * diff < 0 or (diff == 0 and (v > 0) == side % 2):
-                    thing.motion_v[side // 2] = 0
-                    adjust[side // 2] += diff
-                    contribs += 1
-
-                if diff != 0:
-                    resolved += 1
-
-    mask = contributors != 0
-    move[mask] /= contributors.reshape((-1, 1))[mask]
+    selector = contributors.flat != 0
+    move.flat[selector] /= contributors.flat[selector]
     numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
-    for thing, adjust in itertools.izip(entities, move):
-        thing.location += adjust
+    location[:] += move
+    motion_v[motion_v_to_zero] = 0
 
-    return resolved
 
-def resolve_passive_passive_collisions(entities):
+def resolve_passive_passive_collisions(location, motion_v, passive_tl, passive_br):
     '''Makes colliding entities bounce off each other as though they were
     all the same mass.
 
@@ -176,71 +174,26 @@ def resolve_passive_passive_collisions(entities):
 
     TODO: Add elasticity parameters and not this sheepy shit.'''
 
-    ppcollisions = passive_passive_collisions(entities)
+    nthings = len(location)
+    allrows = numpy.arange(nthings)
+    buddy = numpy.zeros((nthings,), dtype=int)
+    swapmask = numpy.zeros((nthings,), dtype=bool)
+    move = numpy.zeros((nthings, 2))
+    contributors = numpy.zeros((nthings,), dtype=int)
 
-    # Passive hitbox of each entity in world coordinates.
-    # Created here so we don't realloc for each collision.
-    hbp1 = components.hitbox((0, 0), (0, 0))
-    hbp2 = components.hitbox((0, 0), (0, 0))
-    move = numpy.zeros((len(entities), 2))
-    contributors = numpy.zeros ((len(entities),), dtype=int)
-    swaps = []
-
-    for (thing1, thing2), (i1, i2) in itertools.izip(itertools.product(entities, entities),
-                                                     itertools.product(range(len(entities)), range(len(entities)))):
-        if i1 >= i2:
-            continue
-        if ppcollisions[i1, i2]:
-            # Construct hitboxes in world coordinates.
-            numpy.add(thing1.hitbox_passive.point, thing1.location, hbp1.point)
-            hbp1.size[:] = thing1.hitbox_passive.size
-
-            numpy.add(thing2.hitbox_passive.point, thing2.location, hbp2.point)
-            hbp2.size[:] = thing2.hitbox_passive.size
-
-            side, diff = complete_collision(hbp1, hbp2)
-
-            # Set grounded flag when one is on top of the other
-            if side == 3:
-                thing1.tags.add('grounded')
-            elif side == 2:
-                thing2.tags.add('grounded')
-
-            side = side // 2
-            v1, v2 = thing1.motion_v, thing2.motion_v
-
-            # Already moving away from each other, nothing to do here.
-            if (v1[side] - v2[side]) * diff > 0:
-                continue
-
-            # calculate movement
-            # Move entity if it's moving against the diff
-            if v1[side] * diff <= 0:
-                move[i1, side] += diff
-                contributors[i1] += 1
-
-            if v2[side] * diff >= 0:
-                move[i2, side] -= diff
-                contributors[i2] += 1
-
-            if v1[side] != v2[side]:
-                swaps.append((side, i1, i2))
-
-    # limit location adjustment
-    mask = contributors != 0
-    move[mask] /= contributors.reshape((-1, 1))[mask]
-    numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
-    for thing, adjust in itertools.izip(entities, move):
-        thing.location += adjust
-
-    for side, i1, i2 in swaps:
-        m1 = entities[i1].motion_v[side]
-        m2 = entities[i2].motion_v[side]
-        entities[i1].motion_v[side] = m2
-        entities[i2].motion_v[side] = m1
+    ppcollisions = passive_passive_collisions(passive_tl, passive_br)
+    lefti, righti = numpy.nonzero(ppcollisions)
+    if len(lefti) == 0:
+        return 0
 
 
-    return len(swaps)
+    sides, diffs = complete_collision(numpy.take(passive_tl, lefti, axis=0),
+                                      numpy.take(passive_br, lefti, axis=0),
+                                      numpy.take(passive_tl, righti, axis=0),
+                                      numpy.take(passive_br, righti, axis=0))
+
+    motion_v[lefti,...] = motion_v[righti,...]
+    return len(lefti)
 
 
 def resolve_passive_active_collisions(entities):
