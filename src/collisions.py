@@ -51,11 +51,11 @@ def active_passive_collisions(active_tl, active_br, passive_tl, passive_br):
     The main difference is that we can't cheat here and do half the checks,
     then transpose, we need to do all checks.
     '''
-    passive_tl_3d = passive_tl_3d.reshape(1, -1, 2)
-    passive_br_3d = passive_br_3d.reshape(1, -1, 2)
+    passive_tl_3d = passive_tl.reshape(1, -1, 2)
+    passive_br_3d = passive_br.reshape(1, -1, 2)
 
-    active_tl_3d = active_tl_3d.reshape(-1, 1, 2)
-    active_br_3d = active_br_3d.reshape(-1, 1, 2)
+    active_tl_3d = active_tl.reshape(-1, 1, 2)
+    active_br_3d = active_br.reshape(-1, 1, 2)
 
     negcheck = numpy.logical_or(numpy.any(active_tl_3d > passive_br_3d, axis=2),
                                 numpy.any(active_br_3d < passive_tl_3d, axis=2))
@@ -144,14 +144,16 @@ def resolve_wall_collisions(mask, location, motion_v, passive_tl, passive_br, wa
     allrows = numpy.arange(nthings)
     resolved = 0
 
-    for wall_tl, wall_br in itertools.izip(walls_tl.reshape(-1, 1, 2), walls_br.reshape(-1, 1, 2)):
+    for wall_tl, wall_br, collides in itertools.izip(walls_tl.reshape(-1, 1, 2),
+                                                     walls_br.reshape(-1, 1, 2),
+                                                     pwcollisions.T):
         # sidew, diffw - side and diff information for
         # all entities and ONE wall
         sidew, diffw = complete_collision(passive_tl, passive_br, wall_tl, wall_br)
         xory = sidew // 2
         aorb = sidew % 2
         v = motion_v[allrows, xory]
-        vs = (v * diffw < 0) | (diffw == 0 & ((v > 0) == aorb)) | (v == 0)
+        vs = ((v * diffw < 0) | (diffw == 0 & ((v > 0) == aorb)) | (v == 0)) & collides
         affectedrows = allrows[vs]
         xory = xory[vs]
         move[affectedrows, xory] += diffw[affectedrows]
