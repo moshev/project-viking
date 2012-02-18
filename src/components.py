@@ -101,7 +101,7 @@ class entity(object):
         '''
 
         self.name = name or self.__class__.__name__
-        self.arrayid = self.allocate_array()
+        self.allocate_array()
         entity._all[self.arrayid] = self
         self.clock = clock
         self.keyboard = keyboard
@@ -126,7 +126,7 @@ class entity(object):
 
 
     def dispose(self):
-        self.release_array(self.arrayid)
+        self.release_array()
 
 
     @property
@@ -164,9 +164,9 @@ class entity(object):
 
         def __get__(self, instance, owner):
             if instance is None:
-                return entity._data[self.name]
+                return entity._data[self.name, :entity._nentities]
             else:
-                return entity._data[self.name][instance.arrayid]
+                return entity._data[self.name, instance.arrayid]
 
 
         def __set__(self, instance, value):
@@ -174,24 +174,17 @@ class entity(object):
 
 
     _space = 128
-    LOCATION = intern('location')
-    MOTION_A = intern('motion_a')
-    MOTION_V = intern('motion_v')
-    ACTIVE_TL = intern('active_tl')
-    ACTIVE_BR = intern('active_br')
-    PASSIVE_TL = intern('passive_tl')
-    PASSIVE_BR = intern('passive_br')
+    MOTION_A = 0
+    MOTION_V = 1
+    LOCATION = 2
+    ACTIVE_TL = 3
+    ACTIVE_BR = 4
+    PASSIVE_TL = 5
+    PASSIVE_BR = 6
 
-    _descriptor = numpy.dtype([(LOCATION, float, (2,)),
-                               (MOTION_A, float, (2,)),
-                               (MOTION_V, float, (2,)),
-                               (ACTIVE_TL, float, (2,)),
-                               (ACTIVE_BR, float, (2,)),
-                               (PASSIVE_TL, float, (2,)),
-                               (PASSIVE_BR, float, (2,)),])
-    _data = numpy.zeros((_space,), dtype=_descriptor)
-    _mask = numpy.zeros((_space,), dtype=numpy.bool)
+    _data = numpy.zeros((7, _space, 2), dtype=float)
     _all = numpy.empty((_space,), dtype=object)
+    _nentities = 0
 
     location = _array_property(LOCATION)
     motion_a = _array_property(MOTION_A)
@@ -202,28 +195,23 @@ class entity(object):
     passive_br = _array_property(PASSIVE_BR)
 
 
-    @staticmethod
-    def allocate_array():
-        for arrayid in xrange(entity._space):
-            if not entity._mask[arrayid]:
-                break
-        else:
+    def allocate_array(self):
+        if entity._nentities >= entity._space:
             raise RuntimeError('exhausted _space for entity shit =[')
+        self.arrayid = entity._nentities
+        entity._data[:,self.arrayid] = 0
+        entity._all[self.arrayid] = self
+        entity._nentities += 1
 
-        entity._mask[arrayid] = True
-        return arrayid
 
+    def release_array(self):
+        entity._data[:, self.arrayid:entity._nentities - 1] = entity._data[:, self.arrayid + 1:entity._nentities]
+        entity._nentities -= 1
+        for thing in entity._all[self.arrayid:entity._nentities]:
+            thing.arrayid -= 1
+        entity._all[entity._nentities] = None
 
-    @staticmethod
-    def release_array(arrayid):
-        entity._data[arrayid] = numpy.zeros((1,), dtype=entity._descriptor)
-        entity._mask[arrayid] = False
-        entity._all[arrayid] = None
 
     @staticmethod
     def translate_all(delta):
-        entity.location[:] += delta
-        entity.active_tl[:] += delta
-        entity.active_br[:] += delta
-        entity.passive_tl[:] += delta
-        entity.passive_br[:] += delta
+        entity._data[entity.LOCATION:,:entity._nentities] += delta

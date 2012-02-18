@@ -160,8 +160,7 @@ def main(level_file):
             active_br = components.entity.active_br
             passive_tl = components.entity.passive_tl
             passive_br = components.entity.passive_br
-            mask = components.entity._mask
-            instances = components.entity._all
+            instances = components.entity._all[:components.entity._nentities]
             do_translate = components.entity.translate_all
 
             GROUNDED = intern('grounded')
@@ -178,19 +177,19 @@ def main(level_file):
             rwc = collisions.resolve_wall_collisions
             grounded_mask = numpy.zeros((len(instances),), dtype=bool)
             stop = numpy.empty((len(instances),2), dtype=bool)
-            adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+            adjust, sides = rwc(motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
             numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
             motion_v[stop] = 0
             do_translate(motion_v[:])
             while attempts < 20 and adjust_significant:
-                adjust, sides, done_impulse = rppc(mask, motion_v, passive_tl, passive_br)
+                adjust, sides, done_impulse = rppc(motion_v, passive_tl, passive_br)
                 grounded_mask |= sides[:,3]
                 adjust *= 0.5
                 do_translate(adjust)
                 adjust_significant = not numpy.allclose(adjust, 0, atol=0.125)
                 adjust_significant |= done_impulse > 0.125
                 del adjust, sides
-                adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+                adjust, sides = rwc(motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
                 adjust_significant |= not numpy.allclose(adjust, 0, atol=0.5)
                 do_translate(adjust)
                 numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
@@ -296,8 +295,8 @@ def main(level_file):
             gl.glUseProgram(wallprog.id)
             wallprog['color'] = (0.89, 0.89, 0.89, 1.0)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
-            quads[:, 0, :] = components.entity.passive_tl[components.entity._mask]
-            quads[:, 2, :] = components.entity.passive_br[components.entity._mask]
+            quads[:, 0, :] = components.entity.passive_tl
+            quads[:, 2, :] = components.entity.passive_br
             quads[:, 1, 0] = quads[:, 0, 0]
             quads[:, 1, 1] = quads[:, 2, 1]
             quads[:, 3, 0] = quads[:, 2, 0]
