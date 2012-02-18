@@ -170,7 +170,7 @@ def main(level_file):
                 thing.tags.discard(GROUNDED)
             motion_v[:] += motion_a
 
-            #collisions.resolve_passive_active_collisions(entities)
+            collisions.resolve_passive_active_collisions(instances, active_tl, active_br, passive_tl, passive_br)
             attempts = 0
             adjust_significant = True
             rppc = collisions.resolve_passive_passive_collisions

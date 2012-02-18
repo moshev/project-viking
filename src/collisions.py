@@ -229,15 +229,13 @@ def resolve_passive_passive_collisions(motion_v, passive_tl, passive_br):
     return adjust, sides, done_impulse
 
 
-def resolve_passive_active_collisions(entities):
+def resolve_passive_active_collisions(instances, active_tl, active_br, passive_tl, passive_br):
     '''Decreases the health of each entity whose passive hitbox
     collides with another's active hitbox.
 
     TODO: Add damage parameter.'''
 
-    apcollisions = active_passive_collisions(entities)
-    for i1, i2 in itertools.product(xrange(len(entities)), xrange(len(entities))):
-        if i1 == i2:
-            continue
-        if apcollisions[i1, i2]:
-            entities[i2].hitpoints -= 1
+    apcollisions = active_passive_collisions(active_tl, active_br, passive_tl, passive_br)
+    damage = numpy.sum(apcollisions, axis=0)
+    for thing, damage_one in itertools.izip(instances, damage):
+        thing.hitpoints -= damage_one
