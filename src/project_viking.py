@@ -24,7 +24,7 @@ import collisions
 import constants
 
 
-def handle_resize(w, h): 
+def handle_resize(w, h):
     gl.glViewport(0, 0, w, h)
     gl.glMatrixMode(gl.GL_PROJECTION)
     gl.glLoadIdentity()
@@ -39,7 +39,7 @@ def main(level_file):
     pygame.init()
     pygame.display.gl_set_attribute(pygame.GL_ALPHA_SIZE, 8)
 
-    screen = pygame.display.set_mode((1000, 600), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
+    pygame.display.set_mode((1000, 600), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
     handle_resize(1000, 600)
     screen_center = (500, 300)
     camera_offset = 230
@@ -74,6 +74,9 @@ def main(level_file):
         for w in walls:
             numpy.round(w.point, out=w.point)
             numpy.round(w.size, out=w.size)
+    walls_tlbr = numpy.empty((2, len(walls), 2))
+    walls_tlbr[0] = [w.point for w in walls]
+    walls_tlbr[1] = [w.point + w.size for w in walls]
 
     # vertex positions for walls
     quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
@@ -149,29 +152,61 @@ def main(level_file):
             for event in key_events:
                 keyboard.dispatch(event)
 
-            for thing in entities:
-                thing.motion.a[:] = (0, constants.G)
+            location = components.entity.location
+            delta = numpy.array(location)
+            motion_a = components.entity.motion_a
+            motion_v = components.entity.motion_v
+            active_tl = components.entity.active_tl
+            active_br = components.entity.active_br
+            passive_tl = components.entity.passive_tl
+            passive_br = components.entity.passive_br
+            mask = components.entity._mask
+            instances = components.entity._all
+            do_translate = components.entity.translate_all
 
+            GROUNDED = intern('grounded')
+            motion_a[:] = (0, constants.G)
             clock.dispatch(tick_event)
-
             for thing in entities:
-                thing.tags.discard('grounded')
-                thing.motion.v += thing.motion.a
+                thing.tags.discard(GROUNDED)
+            motion_v[:] += motion_a
 
-            collisions.resolve_passive_active_collisions(entities)
-
+            #collisions.resolve_passive_active_collisions(entities)
             attempts = 0
-            resolutions = 1
+            adjust_significant = True
             rppc = collisions.resolve_passive_passive_collisions
             rwc = collisions.resolve_wall_collisions
-            while attempts < 20 and resolutions != 0:
-                rwc(entities, walls)
-                resolutions = rppc(entities)
+            grounded_mask = numpy.zeros((len(instances),), dtype=bool)
+            stop = numpy.empty((len(instances),2), dtype=bool)
+            adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+            numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
+            motion_v[stop] = 0
+            do_translate(motion_v[:])
+            while attempts < 20 and adjust_significant:
+                adjust, sides, done_impulse = rppc(mask, motion_v, passive_tl, passive_br)
+                grounded_mask |= sides[:,3]
+                adjust *= 0.5
+                do_translate(adjust)
+                adjust_significant = not numpy.allclose(adjust, 0, atol=0.125)
+                adjust_significant |= done_impulse > 0.125
+                del adjust, sides
+                adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+                adjust_significant |= not numpy.allclose(adjust, 0, atol=0.5)
+                do_translate(adjust)
+                numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
+                motion_v[stop] = 0
+                grounded_mask |= sides[:,3]
+
                 attempts += 1
 
-            for thing in entities:
-                thing.location += thing.motion.v
-                numpy.round(thing.location, out=thing.location)
+            for thing in numpy.compress(grounded_mask, instances):
+                thing.tags.add(GROUNDED)
+
+            numpy.round(location, out=location)
+            numpy.round(active_tl, out=active_tl)
+            numpy.round(active_br, out=active_br)
+            numpy.round(passive_tl, out=passive_tl)
+            numpy.round(passive_br, out=passive_br)
 
             do_frame = False
             ticks_done += 1
@@ -202,11 +237,12 @@ def main(level_file):
             if thing.name == 'Player':
                 thing.hitpoints = 100
                 thing.location[:] = (500, -10)
-                thing.motion.v[:] = 0
+                thing.motion_v[:] = 0
                 if thing.physics is not None:
                     thing.physics.last_position[:] = thing.location
             else:
                 entities.remove(thing)
+                thing.dispose()
 
         xyuv = numpy.empty((4, 4), dtype=numpy.float32)
         texid = [0] * len(entities)
@@ -229,7 +265,7 @@ def main(level_file):
 
         # draw walls
         gl.glUseProgram(wallprog.id)
-        wallprog['color'] = (79.0/255.0, 118.0/255.0, 73.0/255.0, 1.0)
+        wallprog['color'] = (162.0/255.0, 153.0/255.0, 118.0/255.0, 1.0)
         with wallbuf.bound:
             gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
             gl.glDrawArrays(gl.GL_QUADS, 0, len(walls) * 8)
@@ -260,9 +296,8 @@ def main(level_file):
             gl.glUseProgram(wallprog.id)
             wallprog['color'] = (0.89, 0.89, 0.89, 1.0)
             quads = numpy.zeros((len(entities), 4, 2), dtype=numpy.float32)
-            quads[:, 0, :] = [thing.hitbox_passive.point + thing.location for thing in entities]
-            quads[:, 2, :] = quads[:, 0, :]
-            quads[:, 2, :] += [thing.hitbox_passive.size for thing in entities]
+            quads[:, 0, :] = components.entity.passive_tl[components.entity._mask]
+            quads[:, 2, :] = components.entity.passive_br[components.entity._mask]
             quads[:, 1, 0] = quads[:, 0, 0]
             quads[:, 1, 1] = quads[:, 2, 1]
             quads[:, 3, 0] = quads[:, 2, 0]
