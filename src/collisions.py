@@ -51,11 +51,11 @@ def active_passive_collisions(active_tl, active_br, passive_tl, passive_br):
     The main difference is that we can't cheat here and do half the checks,
     then transpose, we need to do all checks.
     '''
-    passive_tl_3d = passive_tl_3d.reshape(1, -1, 2)
-    passive_br_3d = passive_br_3d.reshape(1, -1, 2)
+    passive_tl_3d = passive_tl.reshape(1, -1, 2)
+    passive_br_3d = passive_br.reshape(1, -1, 2)
 
-    active_tl_3d = active_tl_3d.reshape(-1, 1, 2)
-    active_br_3d = active_br_3d.reshape(-1, 1, 2)
+    active_tl_3d = active_tl.reshape(-1, 1, 2)
+    active_br_3d = active_br.reshape(-1, 1, 2)
 
     negcheck = numpy.logical_or(numpy.any(active_tl_3d > passive_br_3d, axis=2),
                                 numpy.any(active_br_3d < passive_tl_3d, axis=2))

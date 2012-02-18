@@ -25,14 +25,12 @@ import constants
 
 
 def handle_resize(w, h):
-    screen = pygame.display.set_mode((w, h), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
     gl.glViewport(0, 0, w, h)
     gl.glMatrixMode(gl.GL_PROJECTION)
     gl.glLoadIdentity()
     gl.glOrtho(0, w, h, 0, 0, 1)
     gl.glMatrixMode(gl.GL_MODELVIEW)
     gl.glLoadIdentity()
-    return screen
 
 
 def main(level_file):
@@ -41,7 +39,8 @@ def main(level_file):
     pygame.init()
     pygame.display.gl_set_attribute(pygame.GL_ALPHA_SIZE, 8)
 
-    screen = handle_resize(1000, 600)
+    pygame.display.set_mode((1000, 600), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
+    handle_resize(1000, 600)
     screen_center = (500, 300)
     camera_offset = 130
     gl.glEnable(gl.GL_TEXTURE_2D)
@@ -72,12 +71,12 @@ def main(level_file):
                  components.hitbox((-5, 595), (1010, 5)), ]
     else:
         walls = level.load(level_file)
-        walls_tlbr = numpy.empty((2, len(walls), 2))
         for w in walls:
             numpy.round(w.point, out=w.point)
             numpy.round(w.size, out=w.size)
-        walls_tlbr[0] = [w.point for w in walls]
-        walls_tlbr[1] = [w.point + w.size for w in walls]
+    walls_tlbr = numpy.empty((2, len(walls), 2))
+    walls_tlbr[0] = [w.point for w in walls]
+    walls_tlbr[1] = [w.point + w.size for w in walls]
 
     # vertex positions for walls
     quads = numpy.empty((len(walls), 4, 2), dtype=numpy.float32)
@@ -143,7 +142,7 @@ def main(level_file):
                     do_frame = True
 
         if resize_event:
-            screen = handle_resize(resize_event.w, resize_event.h)
+            handle_resize(resize_event.w, resize_event.h)
             screen_center = (resize_event.w // 2, resize_event.h // 2)
             background.xyuv[:, :2] = [[0, 0], [0, resize_event.h],
                                       [resize_event.w, resize_event.h], [resize_event.w, 0]]
