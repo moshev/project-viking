@@ -165,34 +165,44 @@ def main(level_file):
             instances = components.entity._all
             do_translate = components.entity.translate_all
 
-            motion_a[mask] = (0, constants.G)
+            GROUNDED = intern('grounded')
+            motion_a[:] = (0, constants.G)
             clock.dispatch(tick_event)
             for thing in entities:
-                thing.tags.discard('grounded')
+                thing.tags.discard(GROUNDED)
             motion_v[:] += motion_a
+
             #collisions.resolve_passive_active_collisions(entities)
             attempts = 0
-            resolutions = 1
+            adjust_significant = True
             rppc = collisions.resolve_passive_passive_collisions
             rwc = collisions.resolve_wall_collisions
-            GROUNDED = intern('grounded')
             grounded_mask = numpy.zeros((len(instances),), dtype=bool)
-            stop = numpy.zeros((len(instances),2), dtype=bool)
-            while attempts < 20 and resolutions != 0:
-                adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
-                numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
+            stop = numpy.empty((len(instances),2), dtype=bool)
+            adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+            numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
+            motion_v[stop] = 0
+            do_translate(motion_v[:])
+            while attempts < 20 and adjust_significant:
+                adjust, sides, done_impulse = rppc(mask, motion_v, passive_tl, passive_br)
+                grounded_mask |= sides[:,3]
+                adjust *= 0.5
                 do_translate(adjust)
+                adjust_significant = not numpy.allclose(adjust, 0, atol=0.125)
+                adjust_significant |= done_impulse > 0.125
+                del adjust, sides
+                adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+                adjust_significant |= not numpy.allclose(adjust, 0, atol=0.5)
+                do_translate(adjust)
+                numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
                 motion_v[stop] = 0
                 grounded_mask |= sides[:,3]
 
-                #resolutions, sides = rppc(location, motion_v, passive_tl, passive_br)
-                #grounded_mask |= sides[:,3]
                 attempts += 1
 
             for thing in numpy.compress(grounded_mask, instances):
                 thing.tags.add(GROUNDED)
 
-            do_translate(motion_v[:])
             numpy.round(location, out=location)
             numpy.round(active_tl, out=active_tl)
             numpy.round(active_br, out=active_br)

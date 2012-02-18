@@ -119,9 +119,9 @@ def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
     #
     # diff = [x'1-x0, x'0-x1, y'1-y0, y'0-y1]
     #
-    # diff[0] - how much to move the two hitboxes vertically
+    # diff[0] - how much to move box1 vertically
     #           such that box1 is above box2.
-    # diff[1] - how much to move the two hitboxes vertically
+    # diff[1] - how much to move box1 vertically
     #           such that box2 is above box1.
     # and so on for diff[3],[4] - (1 2, then 2 1)
     #
@@ -175,12 +175,10 @@ def resolve_wall_collisions(mask, motion_v, passive_tl, passive_br, walls_tl, wa
             if not side_one[s] or npabs(d) > npabs(diff_one[s]):
                 side_one[s] = True
                 diff_one[s] = d
-
     adjust = numpy.sum(diffs.reshape(-1, 2, 2), axis=2)
-
     return adjust, sides
 
-def resolve_passive_passive_collisions(mask, move, passive_tl, passive_br):
+def resolve_passive_passive_collisions(mask, motion_v, passive_tl, passive_br):
     '''Makes colliding entities bounce off each other as though they were
     all the same mass.
 
@@ -189,29 +187,50 @@ def resolve_passive_passive_collisions(mask, move, passive_tl, passive_br):
     TODO: Add elasticity parameters and not this sheepy shit.'''
 
     nthings = len(mask)
-    ppcollisions = passive_passive_collisions(passive_tl, passive_br)
+    adjust = numpy.zeros((nthings, 2))
     diffs = numpy.zeros((nthings, 4))
-    # True if entity has collision with wall on side X
     sides = numpy.zeros((nthings, 4), dtype=bool)
+    received_v = numpy.array(motion_v)
+    done_impulse = 0.0
+    ppcollisions = passive_passive_collisions(passive_tl, passive_br)
+    dv = numpy.empty((4,))
 
+    nptake = numpy.take
+    npabs = numpy.abs
+    npsubtract = numpy.subtract
+    npnegative = numpy.negative
+    from itertools import izip
     for n, do in enumerate(mask):
         if not do:
             continue
-        ppcollisions[n, n] = False
         collideswith_indices = numpy.nonzero(ppcollisions[n])[0]
-        if len(collideswith_indices) == 0:
+        if len(collideswith_indices) == 1:
             continue
         tl = passive_tl[n]
         br = passive_br[n]
         diff_one = diffs[n]
         side_one = sides[n]
-        other_tl = numpy.take(passive_tl, collideswith_indices)
-        other_br = numpy.take(passive_br, collideswith_indices)
+        v_one = motion_v[n]
+        other_tl = numpy.take(passive_tl, collideswith_indices, axis=0)
+        other_br = numpy.take(passive_br, collideswith_indices, axis=0)
         side, diff = complete_collision(tl, br, other_tl, other_br)
+        for s, d, m in izip(side, diff, collideswith_indices):
+            if not mask[m] or n == m:
+                continue
+            v = motion_v[m]
+            npsubtract(v_one, v, out=dv[::2])
+            npnegative(dv[::2], out=dv[1::2])
+            if dv[s] < 0:
+                ax = s // 2
+                received_v[m, ax] = v_one[ax]
+                done_impulse += abs(v_one[ax])
+                if not side_one[s] or npabs(d) > npabs(diff_one[s]):
+                    side_one[s] = True
+                    diff_one[s] = d
 
-
-    motion_v[lefti,...] = motion_v[righti,...]
-    return len(lefti)
+    numpy.sum(diffs.reshape(-1, 2, 2), out=adjust, axis=2)
+    motion_v[:] = received_v
+    return adjust, sides, done_impulse
 
 
 def resolve_passive_active_collisions(entities):
