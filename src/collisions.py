@@ -29,12 +29,12 @@ def passive_passive_collisions(toplefts, bottomrights):
     result for each cell.
 
     That is negated to obtain whether two boxes cross each other.
-    '''
-    halfnegcheck = numpy.any(toplefts[numpy.newaxis, :, :] >= bottomrights[:, numpy.newaxis, :], axis=2)
-    result = numpy.logical_not(numpy.logical_or(halfnegcheck, halfnegcheck.T))
 
-    # Remove self collisions
-    result[numpy.diag_indices_from(result)] = False
+    DO NOT THAT: the returned matrix has True along the diagonal =[
+    '''
+    result = numpy.any(toplefts[numpy.newaxis, :, :] > bottomrights[:, numpy.newaxis, :], axis=2)
+    numpy.logical_or(result, result.T, out=result)
+    numpy.logical_not(result, out=result)
     return result
 
 
@@ -74,27 +74,34 @@ def passive_walls_collisions(passive_tl, passive_br, walls_tl, walls_br):
     Returns a NxM array where element at [i, j] says if
     thing i collides with wall j with respect to its passive hitbox.
     '''
+    N = len(passive_tl)
+    M = len(walls_tl)
+    result = numpy.empty((N, M), dtype=bool)
+    tmp = numpy.empty((N, M, 2), dtype=bool)
     passive_tl = passive_tl.reshape(-1, 1, 2)
-    passive_br = passive_br.reshape(-1, 1, 2);
+    passive_br = passive_br.reshape(-1, 1, 2)
     walls_tl = walls_tl.reshape(1, -1, 2)
-    walls_br = walls_br.reshape(1, -1, 2);
-    not_colliding = numpy.logical_or(numpy.any(passive_tl > walls_br, axis=2),
-                                     numpy.any(passive_br < walls_tl, axis=2))
-
-    return numpy.logical_not(not_colliding)
+    walls_br = walls_br.reshape(1, -1, 2)
+    numpy.greater(passive_tl, walls_br, out=tmp)
+    numpy.any(tmp, axis=2, out=result)
+    numpy.less(passive_br, walls_tl, out=tmp)
+    numpy.any(tmp, axis=2, out=tmp[...,0])
+    numpy.logical_or(result, tmp[...,0], out=result)
+    numpy.logical_not(result, out=result)
+    return result
 
 
 def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
-    '''Performs a complete collision between box1 and box2.
+    '''Performs a complete collision between one box against several.
     Returns a tuple (which sides collide, motion vector with respect to box1)
-    The first element is either
+    The first element is an array of either
     0 - box2 left of box1, 1 - box1 left of box2
     2 - box2 over box1, 3 - box1 over box2
 
-    The second is a single number - how much to move box1 in the given direction,
+    The second is an (N,) array for how much to move box1 in the given direction,
     so that it just touches box2.
 
-    The returned values are arrays, each with N elements for each of the left elements'''
+    The returned values are arrays, each with N elements for each of the boxes'''
 
     #    tl
     #  x0, y0 ----+
@@ -118,7 +125,11 @@ def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
     #           such that box2 is above box1.
     # and so on for diff[3],[4] - (1 2, then 2 1)
     #
-    diff = numpy.empty((len(box1_tl), 4), dtype=float)
+    box1_tl = box1_tl.reshape(-1, 2)
+    box1_br = box1_br.reshape(-1, 2)
+    box2_tl = box2_tl.reshape(-1, 2)
+    box2_br = box2_br.reshape(-1, 2)
+    diff = numpy.empty((max(len(box1_tl), len(box2_tl)), 4), dtype=float)
     numpy.subtract(box2_br, box1_tl, diff[:,::2])
     numpy.subtract(box2_tl, box1_br, diff[:,1::2])
 
@@ -131,66 +142,73 @@ def complete_collision(box1_tl, box1_br, box2_tl, box2_br):
     return (side, diff[:,0])
 
 
-def resolve_wall_collisions(mask, location, motion_v, passive_tl, passive_br, walls_tl, walls_br):
+def resolve_wall_collisions(mask, motion_v, passive_tl, passive_br, walls_tl, walls_br):
     '''Resolves all collisions between entities and walls.
     TODO: Add inelasticity coefficients and make entities bounce around.'''
 
     pwcollisions = passive_walls_collisions(passive_tl, passive_br, walls_tl, walls_br);
 
     motion_v_to_zero = numpy.zeros(motion_v.shape, dtype=bool)
-    nthings = len(location)
-    move = numpy.zeros((nthings, 2))
-    contributors = numpy.zeros((nthings, 2), dtype=int)
-    allrows = numpy.arange(nthings)
-    resolved = 0
+    nthings = len(mask)
+    diffs = numpy.zeros((nthings, 4))
+    # True if entity has collision with wall on side X
+    sides = numpy.zeros((nthings, 4), dtype=bool)
 
-    for wall_tl, wall_br in itertools.izip(walls_tl.reshape(-1, 1, 2), walls_br.reshape(-1, 1, 2)):
-        # sidew, diffw - side and diff information for
-        # all entities and ONE wall
-        sidew, diffw = complete_collision(passive_tl, passive_br, wall_tl, wall_br)
-        xory = sidew // 2
-        aorb = sidew % 2
-        v = motion_v[allrows, xory]
-        vs = (v * diffw < 0) | (diffw == 0 & ((v > 0) == aorb)) | (v == 0)
-        affectedrows = allrows[vs]
-        xory = xory[vs]
-        move[affectedrows, xory] += diffw[affectedrows]
-        contributors[affectedrows, xory] += 1
-        motion_v_to_zero[affectedrows, xory] = True
-    del sidew, diffw, wall_tl, wall_br
+    npabs = numpy.abs
+    nptake = numpy.take
+    from itertools import izip
+    for n, do in enumerate(mask):
+        if not do:
+            continue
+        collideswith_indices = numpy.nonzero(pwcollisions[n])[0]
+        if len(collideswith_indices) == 0:
+            continue
+        tl = passive_tl[n]
+        br = passive_br[n]
+        v_one = motion_v[n]
+        diff_one = diffs[n]
+        side_one = sides[n]
+        w_tl = nptake(walls_tl, collideswith_indices, axis=0)
+        w_br = nptake(walls_br, collideswith_indices, axis=0)
+        side, diff = complete_collision(tl, br, w_tl, w_br)
+        for s, d in izip(side, diff):
+            if not side_one[s] or npabs(d) > npabs(diff_one[s]):
+                side_one[s] = True
+                diff_one[s] = d
 
-    selector = contributors.flat != 0
-    move.flat[selector] /= contributors.flat[selector]
-    numpy.clip(move, -MAX_DIFF, MAX_DIFF, move)
-    location[:] += move
-    motion_v[motion_v_to_zero] = 0
+    adjust = numpy.sum(diffs.reshape(-1, 2, 2), axis=2)
 
+    return adjust, sides
 
-def resolve_passive_passive_collisions(location, motion_v, passive_tl, passive_br):
+def resolve_passive_passive_collisions(mask, move, passive_tl, passive_br):
     '''Makes colliding entities bounce off each other as though they were
     all the same mass.
 
-    Returns the number of resolutions performed.
+    Returns the number of resolutions performed
 
     TODO: Add elasticity parameters and not this sheepy shit.'''
 
-    nthings = len(location)
-    allrows = numpy.arange(nthings)
-    buddy = numpy.zeros((nthings,), dtype=int)
-    swapmask = numpy.zeros((nthings,), dtype=bool)
-    move = numpy.zeros((nthings, 2))
-    contributors = numpy.zeros((nthings,), dtype=int)
-
+    nthings = len(mask)
     ppcollisions = passive_passive_collisions(passive_tl, passive_br)
-    lefti, righti = numpy.nonzero(ppcollisions)
-    if len(lefti) == 0:
-        return 0
+    diffs = numpy.zeros((nthings, 4))
+    # True if entity has collision with wall on side X
+    sides = numpy.zeros((nthings, 4), dtype=bool)
 
+    for n, do in enumerate(mask):
+        if not do:
+            continue
+        ppcollisions[n, n] = False
+        collideswith_indices = numpy.nonzero(ppcollisions[n])[0]
+        if len(collideswith_indices) == 0:
+            continue
+        tl = passive_tl[n]
+        br = passive_br[n]
+        diff_one = diffs[n]
+        side_one = sides[n]
+        other_tl = numpy.take(passive_tl, collideswith_indices)
+        other_br = numpy.take(passive_br, collideswith_indices)
+        side, diff = complete_collision(tl, br, other_tl, other_br)
 
-    sides, diffs = complete_collision(numpy.take(passive_tl, lefti, axis=0),
-                                      numpy.take(passive_br, lefti, axis=0),
-                                      numpy.take(passive_tl, righti, axis=0),
-                                      numpy.take(passive_br, righti, axis=0))
 
     motion_v[lefti,...] = motion_v[righti,...]
     return len(lefti)

@@ -162,6 +162,8 @@ def main(level_file):
             passive_tl = components.entity.passive_tl
             passive_br = components.entity.passive_br
             mask = components.entity._mask
+            instances = components.entity._all
+            do_translate = components.entity.translate_all
 
             motion_a[mask] = (0, constants.G)
             clock.dispatch(tick_event)
@@ -173,19 +175,29 @@ def main(level_file):
             resolutions = 1
             rppc = collisions.resolve_passive_passive_collisions
             rwc = collisions.resolve_wall_collisions
+            GROUNDED = intern('grounded')
+            grounded_mask = numpy.zeros((len(instances),), dtype=bool)
+            stop = numpy.zeros((len(instances),2), dtype=bool)
             while attempts < 20 and resolutions != 0:
-                rwc(mask, location, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
-                resolutions = rppc(location, motion_v, passive_tl, passive_br)
+                adjust, sides = rwc(mask, motion_v, passive_tl, passive_br, walls_tlbr[0], walls_tlbr[1])
+                numpy.logical_or.reduce(sides.reshape(-1, 2, 2), out=stop, axis=2)
+                do_translate(adjust)
+                motion_v[stop] = 0
+                grounded_mask |= sides[:,3]
+
+                #resolutions, sides = rppc(location, motion_v, passive_tl, passive_br)
+                #grounded_mask |= sides[:,3]
                 attempts += 1
 
-            location[:] += motion_v
+            for thing in numpy.compress(grounded_mask, instances):
+                thing.tags.add(GROUNDED)
+
+            do_translate(motion_v[:])
             numpy.round(location, out=location)
-            delta -= location
-            active_tl[:] -= delta
-            active_br[:] -= delta
-            passive_tl[:] -= delta
-            passive_br[:] -= delta
-            #numpy.round(thing.location, out=thing.location)
+            numpy.round(active_tl, out=active_tl)
+            numpy.round(active_br, out=active_br)
+            numpy.round(passive_tl, out=passive_tl)
+            numpy.round(passive_br, out=passive_br)
 
             do_frame = False
             ticks_done += 1
@@ -230,7 +242,7 @@ def main(level_file):
                 xyuv[:] = thing.graphics.sprite.xyuv
                 xy = xyuv[:, 0:2]
                 xy[:] += thing.graphics.anchor
-                xy[:] += numpy.round(thing.location)
+                xy[:] += thing.location
                 offset = n * 16
                 entitybuf[offset:] = xyuv
                 texid[n] = thing.graphics.sprite.texid

@@ -102,6 +102,7 @@ class entity(object):
 
         self.name = name or self.__class__.__name__
         self.arrayid = self.allocate_array()
+        entity._all[self.arrayid] = self
         self.clock = clock
         self.keyboard = keyboard
         self.mouse = mouse
@@ -190,7 +191,7 @@ class entity(object):
                                (PASSIVE_BR, float, (2,)),])
     _data = numpy.zeros((_space,), dtype=_descriptor)
     _mask = numpy.zeros((_space,), dtype=numpy.bool)
-
+    _all = numpy.empty((_space,), dtype=object)
 
     location = _array_property(LOCATION)
     motion_a = _array_property(MOTION_A)
@@ -217,3 +218,12 @@ class entity(object):
     def release_array(arrayid):
         entity._data[arrayid] = numpy.zeros((1,), dtype=entity._descriptor)
         entity._mask[arrayid] = False
+        entity._all[arrayid] = None
+
+    @staticmethod
+    def translate_all(delta):
+        entity.location[:] += delta
+        entity.active_tl[:] += delta
+        entity.active_br[:] += delta
+        entity.passive_tl[:] += delta
+        entity.passive_br[:] += delta
