@@ -201,12 +201,6 @@ def main(level_file):
             for thing in numpy.compress(grounded_mask, instances):
                 thing.tags.add(GROUNDED)
 
-            numpy.round(location, out=location)
-            numpy.round(active_tl, out=active_tl)
-            numpy.round(active_br, out=active_br)
-            numpy.round(passive_tl, out=passive_tl)
-            numpy.round(passive_br, out=passive_br)
-
             do_frame = False
             ticks_done += 1
 
@@ -251,6 +245,7 @@ def main(level_file):
                 xy = xyuv[:, 0:2]
                 xy[:] += thing.graphics.anchor
                 xy[:] += thing.location
+                numpy.round(xy, out=xy)
                 offset = n * 16
                 entitybuf[offset:] = xyuv
                 texid[n] = thing.graphics.sprite.texid
