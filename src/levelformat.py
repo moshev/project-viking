@@ -57,7 +57,7 @@ class LevelDecoder(json.JSONDecoder):
 def dump(level, fp):
     '''serialises a level to an open file-like object'''
     enc = LevelEncoder()
-    fp.write(enc.encode(fp))
+    fp.write(enc.encode(level))
 
 def load(fp):
     '''deserialises a level from an open file-like object'''

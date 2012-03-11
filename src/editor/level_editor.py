@@ -166,8 +166,8 @@ class Main(QtGui.QMainWindow):
     def onOpen(self, filename):
         with open(filename) as levelfile:
             self.level.clear()
-            data = pickle.load(levelfile)
-            if data.version > 1:
+            data = levelformat.load(levelfile)
+            if data.version != 2:
                 print('Too high version:', data.version)
                 return
             for rect in data.rects:
@@ -185,8 +185,7 @@ class Main(QtGui.QMainWindow):
                                                0, 0))
 
         with open(filename, 'wb') as levelfile:
-            pickle.dump(levelformat.LevelDescriptor(1, rects), levelfile,
-                        protocol=2)
+            levelformat.dump(levelformat.LevelDescriptor(2, rects), levelfile)
 
 
 def leveleditor_main():
@@ -194,4 +193,3 @@ def leveleditor_main():
     window = Main()
     window.show()
     sys.exit(app.exec_())
-
