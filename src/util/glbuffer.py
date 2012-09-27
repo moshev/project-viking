@@ -46,7 +46,7 @@ class GLBuffer(object):
 
     def __init__(self, size=0, dtype=numpy.float32, usage=gl.GL_DYNAMIC_DRAW):
         '''
-        size - how much storage to allocate for this buffer (in items, not bytes)
+        size - how much storage to allocate for this buffer in advance (in items, not bytes)
         dtype - type of items in storage (float, float16, float32, int, etc.)
         usage - one of GL_{STREAM,STATIC,DYNAMIC}_{READ,COPY,DRAW}
         Description copied from OpenGL reference pages:
@@ -122,9 +122,11 @@ class GLBuffer(object):
             if stop > sz:
                 newsz = max(sz * 2, stop)
                 a = numpy.empty((newsz,), dtype=self.dtype)
-                gl.glGetBufferSubData(gl.GL_ARRAY_BUFFER, 0,
-                                      sz * self.dtype.itemsize,
-                                      a.ctypes.data)
+                # intel dies when querying an empty buffer :[
+                if sz > 0:
+                    gl.glGetBufferSubData(gl.GL_ARRAY_BUFFER, 0,
+                                          sz * self.dtype.itemsize,
+                                          a.ctypes.data)
                 b = numpy.asarray(value).reshape(-1)
                 a[start:stop] = b
                 gl.glBufferData(gl.GL_ARRAY_BUFFER, newsz * self.dtype.itemsize,
