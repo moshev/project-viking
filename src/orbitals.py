@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
-from time import time, sleep
+from time import time
 import ctypes
 import numpy
-import scipy
-from scipy import weave
+import numba
+import math
 import pygame
 from pygame.locals import *
 import pyglet
@@ -16,14 +16,15 @@ import components
 import random
 from util import arrayify
 
-NPARTICLES = 50000
+NPARTICLES = 150000
 PRINTOVERTIME = False
+
 
 class sparse_array(object):
     def __init__(self, shape, dtype=numpy.float64, initial_capacity=16):
         if initial_capacity <= 0:
             raise ValueError('Initial capacity must be positive')
-        self.shape=[initial_capacity] + list(shape)
+        self.shape = [initial_capacity] + list(shape)
         self.values = numpy.ones(self.shape, dtype)
         self.allocated = numpy.zeros(initial_capacity, numpy.bool)
         self.len = 0
@@ -69,11 +70,12 @@ class sparse_array(object):
 
         return self.len
 
+
 class physics(object):
     '''Holds the physics properties for all entities.
-    Each entity has a location, velocity, mass and forces acting on it this frame.
-    The intention is to accumulate all forces acting on each entity this frame
-    and then call tick() to update the other values.'''
+    Each entity has a location, velocity, mass and forces acting on it this
+    frame. The intention is to accumulate all forces acting on each entity
+    this frame and then call tick() to update the other values.'''
 
     def __init__(self, initial_capacity=16):
         self.locations = sparse_array((2,), initial_capacity=initial_capacity)
@@ -133,6 +135,7 @@ class physics(object):
     def m(self):
         return self.masses.values
 
+
 def update_physics_on_tick(physics, clock):
     def on_tick(event):
         physics.tick()
@@ -140,10 +143,12 @@ def update_physics_on_tick(physics, clock):
 
     clock.add(on_tick)
 
+
 class physics_properties(object):
     '''Location, velocity, speed and mass'''
 
-    def __init__(self, physics, location=(0, 0), velocity=(0, 0), force=(0, 0), mass=1):
+    def __init__(self, physics, location=(0, 0), velocity=(0, 0),
+                 force=(0, 0), mass=1):
         self.physics = physics
         self.idx = self.physics.add(location, velocity, force, mass)
 
@@ -179,6 +184,7 @@ class physics_properties(object):
     def mass(self, mass):
         self.physics.masses.values[self.idx][:] = mass
 
+
 class graphics:
     def __init__(self, color, size):
         '''
@@ -189,12 +195,16 @@ class graphics:
         self.color = numpy.array(color, dtype=numpy.int8)
         self.size = arrayify(size)
 
+
 class motion(object):
     def __init__(self, velocity=(0, 0), acceleration=(0, 0)):
         self.v, self.a = map(arrayify, (velocity, acceleration))
 
+
 class entity(object):
-    def __init__(self, name=None, clock=None, keyboard=None, mouse=None, physics=None, graphics=None):
+
+    def __init__(self, name=None, clock=None, keyboard=None, mouse=None,
+                 physics=None, graphics=None):
         self.name = name or self.__class__.__name__
         self.clock = clock
         self.keyboard = keyboard
@@ -202,17 +212,23 @@ class entity(object):
         self.physics = physics
         self.graphics = graphics
 
+
 class accelerate_on_keypress(object):
+
     def __init__(self, entity, key, acceleration, frames=1):
         '''
-        Accelerates the entity along the given acceleration vector for frames, or until key is released.
-        If frames is 0, do not stop accelerating, before key release.
-        acceleration must be a sequence of 2 numbers - the x and y axis acceleration to apply.
+        Accelerates the entity along the given acceleration vector for frames,
+        or until key is released. If frames is 0, do not stop accelerating,
+        before key release.
+        Acceleration must be a sequence of 2 numbers - the x and y axis
+        acceleration to apply.
         The given entity must have a physics component.
         '''
         self.entity = entity
         self.entity.keyboard.add(self.on_key)
-        self.key, self.acceleration, self.frames = key, numpy.array(acceleration), frames
+        self.key = key
+        self.acceleration = numpy.array(acceleration)
+        self.frames = frames
         self.active = False
         self.current_frame = 0
 
@@ -241,15 +257,19 @@ class accelerate_on_keypress(object):
                 self.active = False
         return self.on_tick
 
+
 class repulsor(object):
     '''
     Repulses the actor from the given wall (line).
     The formula used is normal * strength/distance, where distance
-    is the distance of the actor from the wall. If distance <= 0, nothing is applied.
+    is the distance of the actor from the wall.
+    If distance <= 0, nothing is applied.
     '''
     def __init__(self, entity, coords, normal, strength):
         self.entity = entity
-        self.coords, self.normal, self.strength = numpy.array(coords), numpy.array(normal), strength
+        self.coords = numpy.array(coords)
+        self.normal = numpy.array(normal)
+        self.strength = strength
         self.normal /= numpy.sqrt(numpy.dot(self.normal, self.normal))
         self.entity.clock.add(self.on_tick)
 
@@ -263,8 +283,12 @@ class repulsor(object):
             self.entity.motion.a += self.normal * self.strength / d
         return self.on_tick
 
+
 class attractor(object):
-    ''' Attracts all entities with the given physics, according to the law of gravity.  '''
+    '''
+    Attracts all entities with the given physics,
+    according to the law of gravity.
+    '''
 
     def __init__(self, clock, locations, forces, location, strength):
         '''Initialise a new attractor.
@@ -287,48 +311,36 @@ class attractor(object):
         # storage for computing dot products
         self.adot = numpy.zeros((len(self.out_forces), 2))
 
-    def on_tick(self, event):
+    @numba.jit(nopython=True)
+    # numba.void(numba.float64[:, :], numba.float64[:],
+    #                  numba.float64[:, :], numba.float64),
+    #       nopython=True)
+    def _hotcode(out, centre, locations, strength):
+        l = numpy.zeros(2)
+        f = numpy.zeros(2)
+        delta = numpy.zeros(2)
+        current = numpy.zeros(2)
+        for i in range(len(out)):
+            l[0] = locations[i, 0]
+            l[1] = locations[i, 1]
+            f[0] = centre[0] - l[0]
+            f[1] = centre[1] - l[1]
+            flen2 = f[0] * f[0] + f[1] * f[1]
+            mag = flen2 * math.sqrt(flen2)
+            delta[0] = strength * (f[0] / mag)
+            delta[1] = strength * (f[1] / mag)
+            current[0] = out[i, 0] + delta[0]
+            current[1] = out[i, 1] + delta[1]
+            out[i, 0] = current[0]
+            out[i, 1] = current[1]
+
+    def on_tick(self, event, _hotcode=_hotcode):
         if len(self.forces) != len(self.out_forces):
             self.forces = numpy.zeros((len(self.out_forces), 2))
             self.adot = numpy.zeros((len(self.out_forces), 2))
 
-        # The formula is
-        # a = d * K / r²
-        # where d is the direction, K is a constant and r is the distance
-        # In this case, it is
-        # a = v * K / (v²)**1.5 where v is the vector from self.location to the location
-        # of each entity and K is self.strength.
-        # The value of (v²)**1.5 is accumulated in self.adots and the final result in self.forces
-        code = """
-            typedef union vec4 {
-                double v __attribute__((vector_size(16)));
-                double e[2];
-            } v2df;
-            v2df vstrength;
-            vstrength.e[0] = strength;
-            vstrength.e[1] = strength;
-            v2df force;
-            v2df dot;
-            v2df *pc, *po, *pl;
-            pc = (v2df*)centre;
-            po = (v2df*)out;
-            pl = (v2df*)locations;
-            for (int i = 0; i < len; ++i, ++pl, ++po) {
-                force.v = pc->v - pl->v;
-                v2df force2;
-                force2.v = force.v * force.v;
-                dot.e[0] = force2.e[0] + force2.e[1];
-                dot.e[0] *= sqrt(dot.e[0]);
-                dot.e[1] = dot.e[0];
-                po->v += (force.v * vstrength.v) / dot.v;
-            }
-        """
-
-        weave.inline(code, ['out', 'len', 'centre', 'locations', 'strength'],
-                     {'len': len(self.forces), 'locations': self.things_locations,
-                      'out': self.out_forces, 'centre': self.location, 'strength': self.strength},
-                     extra_compile_args=['-march=native', '-msse', '-msse2', '-Os'],
-                     compiler='gcc')
+        _hotcode(self.out_forces, self.location,
+                 self.things_locations, self.strength)
         return self.on_tick
 
 class location_clamper(object):
