@@ -30,7 +30,7 @@ def passive_passive_collisions(toplefts, bottomrights):
 
     That is negated to obtain whether two boxes cross each other.
 
-    DO NOT THAT: the returned matrix has True along the diagonal =[
+    DO NOTE THAT: the returned matrix has True along the diagonal =[
     '''
     result = numpy.any(toplefts[numpy.newaxis, :, :] > bottomrights[:, numpy.newaxis, :], axis=2)
     numpy.logical_or(result, result.T, out=result)
